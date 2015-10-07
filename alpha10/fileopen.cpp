@@ -1,12 +1,18 @@
 // fileopen.cpp
 
 #include "stdafx.h"
-#include <iostream>
 #include <fstream>
+#include "fileopen.h"
 
 using namespace std;
 
-void open()
+int fileopen()
 {
-	ifstream ifs("", ios_base::binary);
+	ifstream ifs("./RF/sample20151005_2.crf", ios_base::binary);
+	if (!ifs){
+		cout << "could't open\n";
+		return 1;
+	}
+	
+	
 }
