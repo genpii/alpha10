@@ -92,7 +92,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	fin.read((char*)&RF_size, sizeof(double));
 	cout << "RF data size:" << RF_size << "\n";
 
-	/* load RF data*/
+	/* load RF data */
 
 
 
