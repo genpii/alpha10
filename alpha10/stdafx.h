@@ -13,4 +13,8 @@
 
 
 // TODO: プログラムに必要な追加ヘッダーをここで参照してください。
-#include <iostream>
+#include <iostream> //コンソール入出力
+#include <string> //string文字列
+#include <fstream> //ファイル入力
+#include <vector> //配列ベクトル用
+#include <valarray> //多次元配列
