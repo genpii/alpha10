@@ -1,5 +1,6 @@
-// main.cpp
-// Gen Onodera
+//main.cpp
+
+//author: Gen Onodera
 
 #include "stdafx.h"
 
@@ -21,21 +22,22 @@ int _tmain(int argc, _TCHAR* argv[])
 	fin.clear();
 	fin.seekg(32, ios_base::beg);
 
-	unsigned short len_record, frame, line, sample, channel;
+	unsigned short len_record, frame, line, sample, ch;
 	fin.read((char*)&len_record, sizeof(unsigned short));
 	fin.read((char*)&frame, sizeof(unsigned short));
 	fin.read((char*)&line, sizeof(unsigned short));
 	fin.read((char*)&sample, sizeof(unsigned short));
-	fin.read((char*)&channel, sizeof(unsigned short));
+	fin.read((char*)&ch, sizeof(unsigned short));
 	cout << "-----RF Data Information-----\n" << "record length:" << len_record << "\n";
 	cout << "number of frames:" << frame << "\n";
 	cout << "number of lines:" << line << "\n";
 	cout << "samples per line:" << sample << "\n";
-	cout << "channel:" << channel << "\n";
+	cout << "number of channel:" << ch << "\n";
 
 	fin.seekg(24, ios_base::cur);
 	char* probe_name = (char*)malloc(8+1);
-	float frq_probe, max_angle, offset_from_center, rad_of_cuv, frq_t, frq_r, frq_s, acq_start, acq_end, range;
+	float frq_probe, max_angle, offset_from_center, rad_of_cuv,
+		frq_t, frq_r, frq_s, acq_start, acq_end, range;
 	unsigned short probe_type, pole, wave, burst, line_start, line_end, max_beam;
 	fin.read(probe_name, 8);
 	probe_name[8] = '\0';
@@ -59,15 +61,15 @@ int _tmain(int argc, _TCHAR* argv[])
 	cout << "probe name:" << probe_name << "\n";
 	cout << "probe type:" << probe_type << "\n";
 	cout << "probe frequency[MHz]:" << frq_probe << "\n";
-	cout << "transmit method(pole):" << pole << "\n";
-	cout << "transmit method(wave):" << wave << "\n";
+	cout << "transmit pole:" << pole << "\n";
+	cout << "wave pattern:" << wave << "\n";
 	cout << "max angle of probe:" << max_angle << "\n";
 	cout << "offset from center[mm]:" << offset_from_center << "\n";
 	cout << "radius of curvature[mm]:" << rad_of_cuv << "\n";
 	cout << "transmit frequency[MHz]:" << frq_t << "\n";
 	cout << "receiving frequency[MHz]:" << frq_r << "\n";
 	cout << "sampling frequency[MHz]:" << frq_s << "\n";
-	cout << "number of burst waves:" << burst << "\n";
+	cout << "burst cycle:" << burst << "\n";
 	cout << "top of ROI[mm]:" << acq_start << "\n";
 	cout << "bottom of ROI[mm]:" << acq_end << "\n";
 	cout << "beam number of acquire start:" << line_start << "\n";
@@ -83,21 +85,52 @@ int _tmain(int argc, _TCHAR* argv[])
 	fin.read((char*)&PRT, sizeof(unsigned short));
 	fin.read((char*)&FR, sizeof(float));
 	cout << "number of focusing:" << focus_num << "\n";
-	cout << "first focus[mm]:" << focus_first << "\n";
+	cout << "first transmit focus[mm]:" << focus_first << "\n";
 	cout << "PRT[us]:" << PRT << "\n";
 	cout << "frame rate:" << FR << "\n";
 
 	fin.seekg(352, ios_base::beg);
 	double RF_size;
 	fin.read((char*)&RF_size, sizeof(double));
-	cout << "RF data size:" << RF_size << "\n";
+	cout << "RF data size:" << RF_size << endl;
 
 	/* load RF data */
+	// RF[frame][line][ch][sample]
+	//cout << "initializing array...\n";
+	cout << "loading RF...\n";
+	short tmp = 0;
 
-
-
-
-
+	// random access method
+	vector<vector<vector<vector<short>>>> RF(frame,
+		vector<vector<vector<short>>>(line, vector<vector<short>>(ch, vector<short>(sample - 1, 0))));
+	for (int i = 0; i < frame; ++i)
+		for (int j = 0; j < line; ++j)
+			for (int k = 0; k < ch; ++k){
+				fin.seekg(8, ios_base::cur);
+				for (int l = 0; l < sample - 1; ++l){
+					fin.read((char*)&tmp, sizeof(short));
+					if (tmp >= 2048) tmp -= 4096;
+					RF[i][j][k][l] = tmp;
+				}
+			}
+	// push back method
+	//vector<vector<vector<vector<short>>>> RF;
+	/*for (int i = 0; i < frame; ++i){
+		RF.push_back(vector<vector<vector<short>>>());
+		for (int j = 0; j < line; ++j){
+			RF[i].push_back(vector<vector<short>>());
+			for (int k = 0; k < ch; ++k){
+				fin.seekg(8, ios_base::cur);
+				RF[i][j].push_back(vector<short>());
+				for (int l = 0; l < sample - 1; ++l){
+					fin.read((char*)&tmp, sizeof(short));
+					if (tmp >= 2048) tmp -= 4096;
+					RF[i][j][k].push_back(tmp);
+				}
+			}
+		}
+	}*/
+	cout << "finished loading RF!\n";
 
 
 
