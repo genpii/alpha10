@@ -109,7 +109,7 @@ int _tmain(int argc, _TCHAR* argv[])
 				fin.seekg(8, ios_base::cur);
 				for (int l = 0; l < sample - 1; ++l){
 					fin.read((char*)&tmp, sizeof(short));
-					if (tmp >= 2048) tmp -= 4096;
+					if (tmp >= 2048) tmp = tmp - 4096;
 					RF[i][j][k][l] = tmp;
 				}
 			}
@@ -132,7 +132,13 @@ int _tmain(int argc, _TCHAR* argv[])
 	}*/
 	cout << "finished loading RF!\n";
 
-
+	/* channel RF draw */
+	string out = "out.dat";
+	ofstream fout(out, ios_base::out);
+	for (int i = 0; i < sample - 1; ++i)
+		fout << i << " " << RF[7][7][7][i] << "\n";
+	  
+	
 
 	return 0;
 }
