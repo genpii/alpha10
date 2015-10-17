@@ -106,11 +106,16 @@ int _tmain(int argc, _TCHAR* argv[])
 	for (int i = 0; i < frame; ++i)
 		for (int j = 0; j < line; ++j)
 			for (int k = 0; k < ch; ++k){
-				fin.seekg(8, ios_base::cur);
+				fin.seekg(8, ios_base::cur); //attribute 6byte channel number 2byte
+				// test
+				//fin.seekg(6, ios_base::cur);
+				/*short chn;
+				fin.read((char*)&chn, sizeof(short));
+				cout << chn << "\n";*/
 				for (int l = 0; l < sample - 1; ++l){
 					fin.read((char*)&tmp, sizeof(short));
-					if (tmp >= 2048) tmp = tmp - 4096;
-					RF[i][j][k][l] = tmp;
+					//if (tmp >= 2048) tmp = tmp - 4096;
+					RF[i][j][k][l] = tmp - 2048;
 				}
 			}
 	// push back method
@@ -135,8 +140,11 @@ int _tmain(int argc, _TCHAR* argv[])
 	/* channel RF draw */
 	string out = "out.dat";
 	ofstream fout(out, ios_base::out);
-	for (int i = 0; i < sample - 1; ++i)
-		fout << i << " " << RF[7][7][7][i] << "\n";
+	for (int i = 0; i < ch; ++i){
+		for (int j = 0; j < sample - 1; ++j)
+			fout << j << " " << RF[7][30][i][j] << "\n";
+		fout << "\n";
+	}
 	  
 	
 
