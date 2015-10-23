@@ -87,7 +87,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	cout << "number of focusing:" << focus_num << "\n";
 	cout << "first transmit focus[mm]:" << focus_first << "\n";
 	cout << "PRT[us]:" << PRT << "\n";
-	cout << "frame rate:" << FR << "\n";
+	cout << "frame rate[Hz]:" << FR << "\n";
 
 	fin.seekg(352, ios_base::beg);
 	double RF_size;
