@@ -18,3 +18,5 @@
 #include <fstream> //ファイル入力
 #include <vector> //配列ベクトル用
 #include <valarray> //多次元配列
+#include <numeric> //演算
+#include "mkl.h" //MKL

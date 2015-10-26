@@ -10,7 +10,7 @@ int _tmain(int argc, _TCHAR* argv[])
 {
 	/* open data */
 	cout << "Load started.\n";
-	string filename = "./RF/sample20151005_2.crf";
+	string filename = "./RF/sample1026.crf";
 	ifstream fin(filename, ios_base::in | ios_base::binary);
 	if (!fin){
 		cout << "couldn't load file.\n";
@@ -104,20 +104,23 @@ int _tmain(int argc, _TCHAR* argv[])
 	vector<vector<vector<vector<short>>>> RF(frame,
 		vector<vector<vector<short>>>(line, vector<vector<short>>(ch, vector<short>(sample - 1, 0))));
 	for (int i = 0; i < frame; ++i)
-		for (int j = 0; j < line; ++j)
-			for (int k = 0; k < ch; ++k){
+		for (int j = 0; j < line; ++j){
+			for (int k = 0; k < ch - 16; ++k){ // back of 80 elements
 				fin.seekg(8, ios_base::cur); //attribute 6byte channel number 2byte
-				// test
-				//fin.seekg(6, ios_base::cur);
-				/*short chn;
-				fin.read((char*)&chn, sizeof(short));
-				cout << chn << "\n";*/
 				for (int l = 0; l < sample - 1; ++l){
 					fin.read((char*)&tmp, sizeof(short));
-					//if (tmp >= 2048) tmp = tmp - 4096;
+					RF[i][j][k + 16][l] = tmp - 2048;
+				}
+			}
+			for (int k = 0; k < 16; ++k){ // front of 16 elements
+				fin.seekg(8, ios_base::cur);
+				for (int l = 0; l < sample - 1; ++l){
+					fin.read((char*)&tmp, sizeof(short));
 					RF[i][j][k][l] = tmp - 2048;
 				}
 			}
+		}
+	
 	// push back method
 	//vector<vector<vector<vector<short>>>> RF;
 	/*for (int i = 0; i < frame; ++i){
@@ -136,18 +139,33 @@ int _tmain(int argc, _TCHAR* argv[])
 		}
 	}*/
 	cout << "finished loading RF!\n";
+	
+	/* bias removal */
+	int bias = 0;
+	for (int i = 0; i < frame; ++i)
+		for (int j = 0; j < line; ++j)
+			for (int k = 0; k < ch; ++k){
+				bias = accumulate(RF[i][j][k].begin(), RF[i][j][k].end(), 0);
+				bias = bias / (sample - 1);
+				for (int l = 0; l < sample - 1; ++l)
+					RF[i][j][k][l] -= bias;	
+			}
+	cout << "finished removing bias!\n";
 
 	/* channel RF draw */
-	string out = "out.dat";
+	string out = "element.dat";
 	ofstream fout(out, ios_base::out);
 	for (int i = 0; i < ch; ++i){
 		for (int j = 0; j < sample - 1; ++j)
 			fout << j << " " << RF[7][30][i][j] << "\n";
 		fout << "\n";
 	}
-	 
-	/* bias removal */
-	
+
+	/* interpolation */
+	DFTI_DESCRIPTOR *handle1;
+	long status;
+
+	status = DftiCreateDescriptor(&handle1, DFTI_SINGLE, DFTI_COMPLEX, 1, 32);
 	
 
 	return 0;
