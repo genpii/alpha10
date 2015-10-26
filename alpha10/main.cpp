@@ -145,7 +145,9 @@ int _tmain(int argc, _TCHAR* argv[])
 			fout << j << " " << RF[7][30][i][j] << "\n";
 		fout << "\n";
 	}
-	  
+	 
+	/* bias removal */
+	
 	
 
 	return 0;
