@@ -10,7 +10,7 @@ int _tmain(int argc, _TCHAR* argv[])
 {
 	/* open data */
 	cout << "Load started.\n";
-	string filename = "./RF/sample1026.crf";
+	string filename = "./RF/linear.crf";
 	ifstream fin(filename, ios_base::in | ios_base::binary);
 	if (!fin){
 		cout << "couldn't load file.\n";
@@ -25,6 +25,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	unsigned short len_record, frame, line, sample, ch;
 	fin.read((char*)&len_record, sizeof(unsigned short));
 	fin.read((char*)&frame, sizeof(unsigned short));
+	const unsigned short frame2 = frame;
 	fin.read((char*)&line, sizeof(unsigned short));
 	fin.read((char*)&sample, sizeof(unsigned short));
 	fin.read((char*)&ch, sizeof(unsigned short));
@@ -96,13 +97,23 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	/* load RF data */
 	// RF[frame][line][ch][sample]
-	//cout << "initializing array...\n";
-	cout << "loading RF...\n";
+	cout << "initializing array...\n";
 	short tmp = 0;
 
 	// random access method
 	vector<vector<vector<vector<short>>>> RF(frame,
 		vector<vector<vector<short>>>(line, vector<vector<short>>(ch, vector<short>(sample - 1, 0))));
+	/*short ****RF = new short***[frame];
+	for (int i = 0; i < frame; ++i){
+		RF[i] = new short**[line];
+		for (int j = 0; j < line; ++j){
+			RF[i][j] = new short*[ch];
+			for (int k = 0; k < ch; ++k){
+				RF[i][j][k] = new short[sample - 1];
+			}
+		}
+	}*/
+	cout << "loading RF...\n";
 	for (int i = 0; i < frame; ++i)
 		for (int j = 0; j < line; ++j){
 			for (int k = 0; k < ch - 16; ++k){ // back of 80 elements
@@ -157,16 +168,25 @@ int _tmain(int argc, _TCHAR* argv[])
 	ofstream fout(out, ios_base::out);
 	for (int i = 0; i < ch; ++i){
 		for (int j = 0; j < sample - 1; ++j)
-			fout << j << " " << RF[7][30][i][j] << "\n";
+			fout << j << " " << RF[5][40][i][j] << "\n";
 		fout << "\n";
 	}
 
 	/* interpolation */
-	DFTI_DESCRIPTOR *handle1;
-	long status;
+	/*DFTI_DESCRIPTOR_HANDLE handle1;
+	MKL_LONG status;
 
-	status = DftiCreateDescriptor(&handle1, DFTI_SINGLE, DFTI_COMPLEX, 1, 32);
-	
+	status = DftiCreateDescriptor(&handle1, DFTI_SINGLE, DFTI_COMPLEX, 1, sample - 1);
+	status = DftiCommitDescriptor(handle1);
+	short* xin;
+	complex<float>* xout;
+	for (int i = 0; i < sample - 1; ++i)
+		xin[i] = RF[7][30][0][i];
+	status = DftiComputeForward(handle1, xin, xout);
+	string out2 = "fft.dat";
+	ofstream fout2(out2, ios_base::out);
+	for (int j = 0; j < sample - 1; ++j)
+		fout2 << j << " " << xout[j] << "\n";*/
 
 	return 0;
 }

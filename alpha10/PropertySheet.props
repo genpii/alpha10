@@ -5,12 +5,17 @@
   <PropertyGroup>
     <_PropertySheetDisplayName>IntelMKL</_PropertySheetDisplayName>
   </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <UseIntelMKL>Sequential</UseIntelMKL>
+    <UseIntelIPP>false</UseIntelIPP>
+  </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
       <AdditionalIncludeDirectories>C:\Program Files %28x86%29\Intel\Composer XE 2015\mkl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>C:\Program Files %28x86%29\Intel\Composer XE 2015\mkl\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Program Files %28x86%29\Intel\Composer XE 2015\mkl\lib;C:\Program Files %28x86%29\Intel\Composer XE 2015\mkl\lib\ia32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>mkl_intel_c.lib;mkl_core.lib;mkl_sequential.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup />
