@@ -10,7 +10,7 @@ int _tmain(int argc, _TCHAR* argv[])
 {
 	/* open data */
 	cout << "Load started.\n";
-	string filename = "./RF/linear.crf";
+	string filename = "./RF/52101_ssd.crf";
 	ifstream fin(filename, ios_base::in | ios_base::binary);
 	if (!fin){
 		cout << "couldn't load file.\n";
@@ -100,9 +100,11 @@ int _tmain(int argc, _TCHAR* argv[])
 	cout << "initializing array...\n";
 	short tmp = 0;
 
+
 	// random access method
 	vector<vector<vector<vector<short>>>> RF(frame,
 		vector<vector<vector<short>>>(line, vector<vector<short>>(ch, vector<short>(sample - 1, 0))));
+
 	/*short ****RF = new short***[frame];
 	for (int i = 0; i < frame; ++i){
 		RF[i] = new short**[line];
@@ -173,21 +175,30 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 
 	/* interpolation */
-	/*DFTI_DESCRIPTOR_HANDLE handle1;
+	DFTI_DESCRIPTOR_HANDLE handle1;
 	MKL_LONG status;
 
-	status = DftiCreateDescriptor(&handle1, DFTI_SINGLE, DFTI_COMPLEX, 1, sample - 1);
+	status = DftiCreateDescriptor(&handle1, DFTI_SINGLE, DFTI_REAL, 1, sample - 1);
 	status = DftiCommitDescriptor(handle1);
-	short* xin;
-	complex<float>* xout;
+	float *xin = new float[sample - 1];
+	float *xout = new float[sample + 1];
+	//complex<float>* xout;
 	for (int i = 0; i < sample - 1; ++i)
-		xin[i] = RF[7][30][0][i];
-	status = DftiComputeForward(handle1, xin, xout);
-	string out2 = "fft.dat";
+		xin[i] = RF[5][40][0][i];
+
+	string out2 = "RF.dat";
 	ofstream fout2(out2, ios_base::out);
 	for (int j = 0; j < sample - 1; ++j)
-		fout2 << j << " " << xout[j] << "\n";*/
+		fout2 << j << " " << xin[j] << "\n";
 
+	status = DftiComputeForward(handle1, xin, xout);
+
+	string out3 = "fft.dat";
+	ofstream fout3(out3, ios_base::out);
+	for (int j = 0; j < sample - 1; ++j)
+		fout3 << j << " " << xout[j] << "\n";
+	
+	
 	return 0;
 }
 

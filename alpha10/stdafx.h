@@ -21,3 +21,4 @@
 #include <numeric> //‰‰Z
 #include "mkl.h" //MKL
 #include <complex> //•¡‘f”
+#include <ipp.h> //IPP M†ˆ—
