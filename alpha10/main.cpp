@@ -165,40 +165,52 @@ int _tmain(int argc, _TCHAR* argv[])
 			}
 	cout << "finished removing bias!\n";
 
-	/* channel RF draw */
-	string out = "element.dat";
-	ofstream fout(out, ios_base::out);
-	for (int i = 0; i < ch; ++i){
-		for (int j = 0; j < sample - 1; ++j)
-			fout << j << " " << RF[5][40][i][j] << "\n";
-		fout << "\n";
-	}
+	///* channel RF draw */
+	//string out = "element.dat";
+	//ofstream fout(out, ios_base::out);
+	//for (int i = 0; i < ch; ++i){
+	//	for (int j = 0; j < sample - 1; ++j)
+	//		fout << j << " " << RF[5][40][i][j] << "\n";
+	//	fout << "\n";
+	//}
+
+	/* analize only 1 frame under here*/
+	int nf = 5;
 
 	/* interpolation */
-	DFTI_DESCRIPTOR_HANDLE handle1;
-	MKL_LONG status;
+	cout << "interpolating...\n";
 
-	status = DftiCreateDescriptor(&handle1, DFTI_SINGLE, DFTI_REAL, 1, sample - 1);
-	status = DftiCommitDescriptor(handle1);
-	float *xin = new float[sample - 1];
-	float *xout = new float[sample + 1];
-	//complex<float>* xout;
+	//spec and buffer setting
+	int iporder = (int)(log((double)sample) / log(2.0));
+	IppsFFTSpec_C_32fc *spec = 0;
+	Ipp8u *specbuf, *initbuf, *workbuf;
+	int size_spec, size_init, size_work;
+	ippsFFTGetSize_C_32fc(iporder, IPP_FFT_NODIV_BY_ANY, ippAlgHintNone, &size_spec, &size_init, &size_work);
+	//allocate buffer
+	Ipp32fc *ipsrc = ippsMalloc_32fc((int)(4 * sample));
 	for (int i = 0; i < sample - 1; ++i)
-		xin[i] = RF[5][40][0][i];
-
-	string out2 = "RF.dat";
-	ofstream fout2(out2, ios_base::out);
-	for (int j = 0; j < sample - 1; ++j)
-		fout2 << j << " " << xin[j] << "\n";
-
-	status = DftiComputeForward(handle1, xin, xout);
+		ipsrc[i].re = RF[nf][40][40][i];
+	Ipp32fc *ipdst = ippsMalloc_32fc((int)(4 * sample));
+	specbuf = ippsMalloc_8u(size_spec);
+	initbuf = ippsMalloc_8u(size_init);
+	workbuf = ippsMalloc_8u(size_work);
+	//initialize FFT
+	ippsFFTInit_C_32fc(&spec, iporder, IPP_FFT_NODIV_BY_ANY, ippAlgHintNone, specbuf, initbuf);
+	if (initbuf) ippFree(initbuf);
+	//do FFT
+	ippsFFTFwd_CToC_32fc(ipsrc, ipdst, spec, workbuf);
+	//delete negative part
+	for (int i = 0; i < sample / 2; ++i){
+		ipdst[i + sample / 2].re = 0.0;
+		ipdst[i + sample / 2].im = 0.0;
+	}
+	
 
 	string out3 = "fft.dat";
 	ofstream fout3(out3, ios_base::out);
-	for (int j = 0; j < sample - 1; ++j)
-		fout3 << j << " " << xout[j] << "\n";
-	
-	
+	for (int j = 0; j < 4 * sample; ++j)
+		fout3 << j << " " << ipdst[j].re << "\n";
+
 	return 0;
 }
 
