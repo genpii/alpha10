@@ -100,7 +100,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	cout << "initializing array...\n";
 	short tmp = 0;
 
-
+	frame = 1; //only one frame
 	// random access method
 	vector<vector<vector<vector<short>>>> RF(frame,
 		vector<vector<vector<short>>>(line, vector<vector<short>>(ch, vector<short>(sample - 1, 0))));
@@ -116,6 +116,8 @@ int _tmain(int argc, _TCHAR* argv[])
 		}
 	}*/
 	cout << "loading RF...\n";
+
+	frame = 1; //only one frame
 	for (int i = 0; i < frame; ++i)
 		for (int j = 0; j < line; ++j){
 			for (int k = 0; k < ch - 16; ++k){ // back of 80 elements
@@ -175,7 +177,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	//}
 
 	/* analize only 1 frame under here*/
-	int nf = 5;
+	int nf = 0; //frame 0
 
 	/* interpolation */
 	cout << "interpolating...\n";
@@ -190,13 +192,19 @@ int _tmain(int argc, _TCHAR* argv[])
 	Ipp32fc *ipsrc = ippsMalloc_32fc((int)(4 * sample));
 	for (int i = 0; i < sample - 1; ++i)
 		ipsrc[i].re = RF[nf][40][40][i];
+
+	string out = "RF.dat";
+	ofstream fout(out, ios_base::out);
+	for (int j = 0; j < 4 * sample; ++j)
+		fout << j << " " << ipsrc[j].re << "\n";
+
 	Ipp32fc *ipdst = ippsMalloc_32fc((int)(4 * sample));
 	specbuf = ippsMalloc_8u(size_spec);
 	initbuf = ippsMalloc_8u(size_init);
 	workbuf = ippsMalloc_8u(size_work);
 	//initialize FFT
 	ippsFFTInit_C_32fc(&spec, iporder, IPP_FFT_NODIV_BY_ANY, ippAlgHintNone, specbuf, initbuf);
-	if (initbuf) ippFree(initbuf);
+	//if (initbuf) ippFree(initbuf);
 	//do FFT
 	ippsFFTFwd_CToC_32fc(ipsrc, ipdst, spec, workbuf);
 	//delete negative part
@@ -204,12 +212,22 @@ int _tmain(int argc, _TCHAR* argv[])
 		ipdst[i + sample / 2].re = 0.0;
 		ipdst[i + sample / 2].im = 0.0;
 	}
+	//set configuration for IFFT
+	iporder = (int)(log((double)(4 * sample)) / log(2.0));
 	
-
-	string out3 = "fft.dat";
+	ippsFFTGetSize_C_32fc(iporder, IPP_FFT_NODIV_BY_ANY, ippAlgHintNone, &size_spec, &size_init, &size_work);
+	ippsFFTInit_C_32fc(&spec, iporder, IPP_FFT_NODIV_BY_ANY, ippAlgHintNone, specbuf, initbuf);
+	//do IFFT
+	ippsFFTInv_CToC_32fc(ipdst, ipsrc, spec, workbuf); //‚±‚±‚ÅƒGƒ‰[‚Å‚é
+	
+	string out2 = "fft.dat";
+	ofstream fout2(out2, ios_base::out);
+	for (int j = 0; j < 4 * sample; ++j)
+		fout2 << j << " " << ipdst[j].re << "\n";
+	string out3 = "ifft.dat";
 	ofstream fout3(out3, ios_base::out);
 	for (int j = 0; j < 4 * sample; ++j)
-		fout3 << j << " " << ipdst[j].re << "\n";
+		fout3 << j << " " << ipsrc[j].re << "\n";
 
 	return 0;
 }
