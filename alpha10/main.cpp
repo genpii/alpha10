@@ -153,7 +153,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			}
 		}
 	}*/
-	cout << "finished loading RF!\n";
+	cout << "removing bias...\n";
 	
 	/* bias removal */
 	int bias = 0;
@@ -165,7 +165,6 @@ int _tmain(int argc, _TCHAR* argv[])
 				for (int l = 0; l < sample - 1; ++l)
 					RF[i][j][k][l] -= bias;	
 			}
-	cout << "finished removing bias!\n";
 
 	///* channel RF draw */
 	//string out = "element.dat";
@@ -180,8 +179,22 @@ int _tmain(int argc, _TCHAR* argv[])
 	int nf = 0; //frame 0
 
 	/* interpolation */
-	cout << "interpolating...\n";
-
+	cout << "interpolating and create analytic signal...\n";
+	//initialize focused RF array
+	vector<vector<vector<complex<float>>>> RF_f(frame,
+		vector<vector<complex<float>>>(line, vector<complex<float>>(4 * sample, 0)));
+	const float c0 = 1500.0;
+	vector<vector<float>> delay(line, vector<float>(ch, 0));
+	vector<float> xi(ch, 0);
+	for (int i = 0; i < ch; ++i)
+		xi[i] = 0.2 * (47.5 - i);
+	vector<float> theta(line, 0);
+	for (int i = 0; i < line;++i)
+		theta[i] = max_angle * ((line - 1) / 2 - i) * (2 * M_PI / 180.0);
+	for (int i = 0; i < line; ++i)
+		for (int j = 0; j < ch; ++j)
+			delay[i][j] = 1e+6 * (focus_first - sqrt(pow(focus_first, 2) +
+				pow(xi[j], 2) - 2 * focus_first * xi[j] * sin(theta[i]))) / (c0*1e+3); //us
 	//spec and buffer setting
 	int iporder = (int)(log((double)sample) / log(2.0));
 	IppsFFTSpec_C_32fc *spec = 0;
@@ -207,18 +220,27 @@ int _tmain(int argc, _TCHAR* argv[])
 	//if (initbuf) ippFree(initbuf);
 	//do FFT
 	ippsFFTFwd_CToC_32fc(ipsrc, ipdst, spec, workbuf);
+	//divide
+	for (int i = 0; i < sample / 2 + 1; ++i){
+		ipdst[i].re = ipdst[i].re * 2 / sample;
+		ipdst[i].im = ipdst[i].im * 2 / sample;
+	}
+	ipdst[0].re /= 2; ipdst[0].im /= 2;
+	ipdst[sample / 2].re /= 2; ipdst[sample / 2].im /= 2;
 	//delete negative part
-	for (int i = 0; i < sample / 2; ++i){
+	for (int i = 1; i < sample / 2 + 1; ++i){
 		ipdst[i + sample / 2].re = 0.0;
 		ipdst[i + sample / 2].im = 0.0;
 	}
 	//set configuration for IFFT
 	iporder = (int)(log((double)(4 * sample)) / log(2.0));
-	
 	ippsFFTGetSize_C_32fc(iporder, IPP_FFT_NODIV_BY_ANY, ippAlgHintNone, &size_spec, &size_init, &size_work);
+	specbuf = ippsMalloc_8u(size_spec);
+	initbuf = ippsMalloc_8u(size_init);
+	workbuf = ippsMalloc_8u(size_work);
 	ippsFFTInit_C_32fc(&spec, iporder, IPP_FFT_NODIV_BY_ANY, ippAlgHintNone, specbuf, initbuf);
 	//do IFFT
-	ippsFFTInv_CToC_32fc(ipdst, ipsrc, spec, workbuf); //‚±‚±‚ÅƒGƒ‰[‚Å‚é
+	ippsFFTInv_CToC_32fc(ipdst, ipsrc, spec, workbuf);
 	
 	string out2 = "fft.dat";
 	ofstream fout2(out2, ios_base::out);
