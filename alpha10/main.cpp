@@ -100,7 +100,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	cout << "initializing array...\n";
 	short tmp = 0;
 
-	frame = 1; //only one frame
+	frame = 2;
 	// random access method
 	vector<vector<vector<vector<short>>>> RF(frame,
 		vector<vector<vector<short>>>(line, vector<vector<short>>(ch, vector<short>(sample - 1, 0))));
@@ -117,7 +117,6 @@ int _tmain(int argc, _TCHAR* argv[])
 	}*/
 	cout << "loading RF...\n";
 
-	frame = 1; //only one frame
 	for (int i = 0; i < frame; ++i)
 		for (int j = 0; j < line; ++j){
 			for (int k = 0; k < ch - 16; ++k){ // back of 80 elements
@@ -175,14 +174,14 @@ int _tmain(int argc, _TCHAR* argv[])
 	//	fout << "\n";
 	//}
 
-	/* analize only 1 frame under here*/
-	int nf = 0; //frame 0
-
 	/* interpolation */
 	cout << "interpolating and create analytic signal...\n";
+	
 	//initialize focused RF array
 	vector<vector<vector<complex<float>>>> RF_f(frame,
 		vector<vector<complex<float>>>(line, vector<complex<float>>(4 * sample, 0)));
+
+	//calculate delay
 	const float c0 = 1500.0;
 	vector<vector<float>> delay(line, vector<float>(ch, 0));
 	vector<float> xi(ch, 0);
@@ -193,63 +192,76 @@ int _tmain(int argc, _TCHAR* argv[])
 		theta[i] = max_angle * ((line - 1) / 2 - i) * (2 * M_PI / 180.0);
 	for (int i = 0; i < line; ++i)
 		for (int j = 0; j < ch; ++j)
-			delay[i][j] = 1e+6 * (focus_first - sqrt(pow(focus_first, 2) +
-				pow(xi[j], 2) - 2 * focus_first * xi[j] * sin(theta[i]))) / (c0*1e+3); //us
-	//spec and buffer setting
-	int iporder = (int)(log((double)sample) / log(2.0));
-	IppsFFTSpec_C_32fc *spec = 0;
+			delay[i][j] = 4 * frq_s * 1e+6 * (sqrt(pow(focus_first, 2) + pow(xi[j], 2) 
+				- 2 * focus_first * xi[j] * sin(theta[i])) - focus_first) / (c0*1e+3); //sampling point
+
+	//spec and buffer setting for FFT
 	Ipp8u *specbuf, *initbuf, *workbuf;
-	int size_spec, size_init, size_work;
-	ippsFFTGetSize_C_32fc(iporder, IPP_FFT_NODIV_BY_ANY, ippAlgHintNone, &size_spec, &size_init, &size_work);
-	//allocate buffer
+	int size_spec, size_init, size_work, iporder;
+	IppsFFTSpec_C_32fc *spec = 0;
 	Ipp32fc *ipsrc = ippsMalloc_32fc((int)(4 * sample));
-	for (int i = 0; i < sample - 1; ++i)
-		ipsrc[i].re = RF[nf][40][40][i];
-
-	string out = "RF.dat";
-	ofstream fout(out, ios_base::out);
-	for (int j = 0; j < 4 * sample; ++j)
-		fout << j << " " << ipsrc[j].re << "\n";
-
 	Ipp32fc *ipdst = ippsMalloc_32fc((int)(4 * sample));
-	specbuf = ippsMalloc_8u(size_spec);
-	initbuf = ippsMalloc_8u(size_init);
-	workbuf = ippsMalloc_8u(size_work);
-	//initialize FFT
-	ippsFFTInit_C_32fc(&spec, iporder, IPP_FFT_NODIV_BY_ANY, ippAlgHintNone, specbuf, initbuf);
-	//if (initbuf) ippFree(initbuf);
-	//do FFT
-	ippsFFTFwd_CToC_32fc(ipsrc, ipdst, spec, workbuf);
-	//divide
-	for (int i = 0; i < sample / 2 + 1; ++i){
-		ipdst[i].re = ipdst[i].re * 2 / sample;
-		ipdst[i].im = ipdst[i].im * 2 / sample;
-	}
-	ipdst[0].re /= 2; ipdst[0].im /= 2;
-	ipdst[sample / 2].re /= 2; ipdst[sample / 2].im /= 2;
-	//delete negative part
-	for (int i = 1; i < sample / 2 + 1; ++i){
-		ipdst[i + sample / 2].re = 0.0;
-		ipdst[i + sample / 2].im = 0.0;
-	}
-	//set configuration for IFFT
-	iporder = (int)(log((double)(4 * sample)) / log(2.0));
-	ippsFFTGetSize_C_32fc(iporder, IPP_FFT_NODIV_BY_ANY, ippAlgHintNone, &size_spec, &size_init, &size_work);
-	specbuf = ippsMalloc_8u(size_spec);
-	initbuf = ippsMalloc_8u(size_init);
-	workbuf = ippsMalloc_8u(size_work);
-	ippsFFTInit_C_32fc(&spec, iporder, IPP_FFT_NODIV_BY_ANY, ippAlgHintNone, specbuf, initbuf);
-	//do IFFT
-	ippsFFTInv_CToC_32fc(ipdst, ipsrc, spec, workbuf);
+	const int fftorder = (int)(log((double)sample) / log(2.0));
+	const int ifftorder = (int)(log((double)(4 * sample)) / log(2.0));
+	float ratio;
+	int dpoint;
+	const complex<float> imunit(0.0f, 1.0f);
 	
-	string out2 = "fft.dat";
-	ofstream fout2(out2, ios_base::out);
+	for (int i = 0; i < frame; ++i){
+		for (int j = 0; j < line; ++j){
+			for (int k = 0; k < ch; ++k){
+				ippsFFTGetSize_C_32fc(fftorder, IPP_FFT_NODIV_BY_ANY, ippAlgHintNone, &size_spec, &size_init, &size_work);
+				for (int l = 0; l < sample - 1; ++l)
+					ipsrc[l].re = RF[i][j][k][l];
+				specbuf = ippsMalloc_8u(size_spec);
+				initbuf = ippsMalloc_8u(size_init);
+				workbuf = ippsMalloc_8u(size_work);
+				//initialize FFT
+				ippsFFTInit_C_32fc(&spec, fftorder, IPP_FFT_NODIV_BY_ANY, ippAlgHintNone, specbuf, initbuf);
+				//if (initbuf) ippFree(initbuf);
+				//do FFT
+				ippsFFTFwd_CToC_32fc(ipsrc, ipdst, spec, workbuf);
+				//divide
+				for (int l = 0; l < sample / 2 + 1; ++l){
+					ipdst[l].re = ipdst[l].re * 2 / sample;
+					ipdst[l].im = ipdst[l].im * 2 / sample;
+				}
+				ipdst[0].re /= 2; ipdst[0].im /= 2;
+				ipdst[sample / 2].re /= 2; ipdst[sample / 2].im /= 2;
+				//delete negative part
+				for (int l = 1; l < sample / 2 + 1; ++l){
+					ipdst[l + sample / 2].re = 0.0;
+					ipdst[l + sample / 2].im = 0.0;
+				}
+				//set configuration for IFFT
+				ippsFFTGetSize_C_32fc(ifftorder, IPP_FFT_NODIV_BY_ANY, ippAlgHintNone, &size_spec, &size_init, &size_work);
+				specbuf = ippsMalloc_8u(size_spec);
+				initbuf = ippsMalloc_8u(size_init);
+				workbuf = ippsMalloc_8u(size_work);
+				ippsFFTInit_C_32fc(&spec, ifftorder, IPP_FFT_NODIV_BY_ANY, ippAlgHintNone, specbuf, initbuf);
+				//do IFFT
+				ippsFFTInv_CToC_32fc(ipdst, ipsrc, spec, workbuf);
+
+				//addition and linear interpolation
+				if (delay[j][k] > 0) ratio = 1.0 + static_cast<int>(delay[j][k]) - delay[j][k];
+				else ratio = -1.0 * delay[j][k] + static_cast<int>(delay[j][k]);
+				for (int l = 0; l < 4 * sample; ++l){
+					dpoint = l - delay[j][k];
+					if (dpoint > -1 && dpoint < 4 * sample){
+						RF_f[i][j][l] += ((ipsrc[dpoint].re
+							+ ratio * (ipsrc[dpoint + 1].re - ipsrc[dpoint].re)) + (ipsrc[dpoint].im
+							+ ratio * (ipsrc[dpoint + 1].im - ipsrc[dpoint].im)) * imunit);
+					}
+				}
+			}
+		}
+	}
+	/* channel RF draw */
+	string out = "RFf.dat";
+	ofstream fout(out, ios_base::out);
+	
 	for (int j = 0; j < 4 * sample; ++j)
-		fout2 << j << " " << ipdst[j].re << "\n";
-	string out3 = "ifft.dat";
-	ofstream fout3(out3, ios_base::out);
-	for (int j = 0; j < 4 * sample; ++j)
-		fout3 << j << " " << ipsrc[j].re << "\n";
+		fout << j << " " << RF_f[1][40][j] << "\n";
 
 	return 0;
 }
