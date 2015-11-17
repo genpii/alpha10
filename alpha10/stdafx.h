@@ -22,4 +22,4 @@
 #include <numeric> //‰‰Z
 #include <complex> //•¡‘f”
 #include <ipp.h> //IPP M†ˆ—
-//#include <ippm.h> //IPP s—ñ
+#include <ippm.h> //IPP s—ñ
