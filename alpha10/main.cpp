@@ -96,7 +96,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	cout << "RF data size:" << RF_size << endl;
 
 	//delete first frame
-	fin.seekg((((sample - 1) + 8) * ch * line) * 2, ios_base::cur);
+	fin.seekg((line * ch * (sample + 3))* sizeof(short), ios_base::cur);
 	frame = frame - 1;
 
 	/* load RF data */
@@ -171,15 +171,6 @@ int _tmain(int argc, _TCHAR* argv[])
 					RF[i][j][k][l] -= bias;	
 			}
 
-	///* channel RF draw */
-	//string out = "element.dat";
-	//ofstream fout(out, ios_base::out);
-	//for (int i = 0; i < ch; ++i){
-	//	for (int j = 0; j < sample - 1; ++j)
-	//		fout << j << " " << RF[5][40][i][j] << "\n";
-	//	fout << "\n";
-	//}
-
 	/* do FFT and IFFT */
 	cout << "creating analytic signal...\n";
 	
@@ -196,8 +187,9 @@ int _tmain(int argc, _TCHAR* argv[])
 	int size_speci, size_initi, size_worki;
 	IppsFFTSpec_C_32fc *specf = 0;
 	IppsFFTSpec_C_32fc *speci = 0;
-	Ipp32fc *ipsrc = ippsMalloc_32fc((int)(4 * sample));
-	Ipp32fc *ipdst = ippsMalloc_32fc((int)(4 * sample));
+	Ipp32fc *ipsrc = ippsMalloc_32fc((int)sample);
+	Ipp32fc *ipdst = ippsMalloc_32fc((int)sample);
+	Ipp32fc *ipsrc2 = ippsMalloc_32fc((int)(4 * sample));
 	Ipp32fc *ipdst2 = ippsMalloc_32fc((int)(4 * sample));
 	const int fftorder = (int)(log((double)sample) / log(2.0));
 	const int ifftorder = (int)(log((double)(4 * sample)) / log(2.0));
@@ -211,17 +203,22 @@ int _tmain(int argc, _TCHAR* argv[])
 	workbufi = ippsMalloc_8u(size_worki);
 	ippsFFTInit_C_32fc(&specf, fftorder, IPP_FFT_NODIV_BY_ANY, ippAlgHintNone, specbuff, initbuff);
 	ippsFFTInit_C_32fc(&speci, ifftorder, IPP_FFT_NODIV_BY_ANY, ippAlgHintNone, specbufi, initbufi);
+	string fname2 = "./check.dat";
+	ofstream fout2(fname2, ios_base::out);
 
 	for (int i = 0; i < frame; ++i){
 		for (int j = 0; j < line; ++j){
 			for (int k = 0; k < ch; ++k){
+				ippsZero_32fc(ipsrc, sample);
+				ippsZero_32fc(ipdst, sample);
+				ippsZero_32fc(ipsrc2, 4 * sample);
+				ippsZero_32fc(ipdst2, 4 * sample);
 				//set
 				for (int l = 0; l < sample - 1; ++l)
 					ipsrc[l].re = RF[i][j][k][l];
 
 				//do FFT
 				ippsFFTFwd_CToC_32fc(ipsrc, ipdst, specf, workbuff);
-				
 				//double positive part and delete negative part
 				for (int l = 0; l < sample / 2; ++l){
 					ipdst[l].re = ipdst[l].re * 2 / sample;
@@ -232,15 +229,23 @@ int _tmain(int argc, _TCHAR* argv[])
 				ipdst[0].re /= 2;
 				ipdst[0].im /= 2;
 
+				for (int l = 0; l < sample; ++l)
+					fout2 << l << " " << ipdst[l].re << "\n";
+				for (int l = 0; l < sample; ++l){
+					ipsrc2[l].re = ipdst[l].re;
+					ipsrc2[l].im = ipdst[l].im;
+				}
+
+
 				//do IFFT
-				ippsFFTInv_CToC_32fc(ipdst, ipdst2, speci, workbufi);
+				ippsFFTInv_CToC_32fc(ipsrc2, ipdst2, speci, workbufi);
 				
 				//save
 				for (int l = 0; l < 4 * sample; ++l){
 					elere[i][j][k][l] = ipdst2[l].re;
 					eleim[i][j][k][l] = ipdst2[l].im;
 				}
-
+				ippsZero_32fc(ipdst2, 4 * sample);
 			}
 		}
 	}
@@ -250,7 +255,12 @@ int _tmain(int argc, _TCHAR* argv[])
 	ippsFree(ipdst2);
 	//free RF
 	vector<vector<vector<vector<short>>>>().swap(RF);
-	
+	string fname = "./ele.dat";
+	ofstream fout(fname, ios_base::out);
+	for (int i = 0; i < 4 * sample; ++i)
+		fout << i << " " << elere[0][0][0][i] << "\n";
+
+
 
 	/* interpolation */
 	cout << "interpolating...\n";
@@ -259,40 +269,46 @@ int _tmain(int argc, _TCHAR* argv[])
 	vector<vector<vector<float>>> RFim(frame, vector<vector<float>>(line, vector<float>(sample, 0)));
 
 	//calculate delay
-	const float c0 = 1500.0;
-	float ratio;
-	int dpoint;
-	float shift, cendep;
+	const float c0 = 1540.0;
+	int shift, add;
+	float cendep; //out-bound(um)
 	float smpt = 1.0 / frq_s; //us
-	const complex<float> imunit(0.0f, 1.0f);
-	vector<vector<float>> delay(line, vector<float>(ch, 0));
 	vector<float> xi(ch, 0);
 	for (int i = 0; i < ch; ++i)
-		xi[i] = 0.2 * (47.5 - i);
+		xi[i] = 0.2 * (47.5 - i) * 1e+3; //um
 	vector<float> theta(line, 0);
 	for (int i = 0; i < line; ++i)
 		theta[i] = max_angle * ((line - 1) / 2 - i) * (M_PI / 180.0);
-	for (int i = 0; i < line; ++i)
-		for (int j = 0; j < ch; ++j)
-			delay[i][j] = 4 * frq_s * 1e+6 * (sqrt(pow(focus_first, 2) + pow(xi[j], 2)
-			- 2 * focus_first * xi[j] * sin(theta[i])) - focus_first) / (c0*1e+3); //sampling point
 	vector<float> eledep(sample, 0);
 	for (int i = 0; i < sample; ++i)
-		eledep[i] = i * (c0 / 2 / frq_s); //um
+		eledep[i] = i * (c0 /(8 * frq_s)); //in-bound(um)
 
 	//addition
 	for (int i = 0; i < frame; ++i){
 		for (int j = 0; j < line; ++j){
 			for (int k = 0; k < sample; ++k){
+				add = 0;
 				for (int l = 0; l < ch; ++l){
-					
+					cendep = xi[l] * sin(theta[j]) + sqrt(pow(eledep[k], 2) - pow(xi[l] * cos(theta[j]), 2));
+					shift = static_cast<int>((eledep[k] + cendep) / (c0 / (8 * frq_s)));
+					if (shift >= 0 && shift < 4 * sample){
+						RFre[i][j][k] = RFre[i][j][k] + elere[i][j][l][shift];
+						RFim[i][j][k] = RFim[i][j][k] + eleim[i][j][l][shift];
+						++add;
+					}
+				}
+				if (add != 0){
+					RFre[i][j][k] /= add;
+					RFim[i][j][k] /= add;
+				}
+				else{
+					RFre[i][j][k] = 0.0;
+					RFim[i][j][k] = 0.0;
 				}
 			}
 		}
 	}
-	
-	
-	
+
 	//free eledata
 	vector<vector<vector<vector<float>>>>().swap(elere);
 	vector<vector<vector<vector<float>>>>().swap(eleim);
