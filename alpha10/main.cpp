@@ -4,13 +4,23 @@
 
 #include "stdafx.h"
 
+
 using namespace std;
+int physio();
+void Bsector(const vector<vector<float>>& env, float dangle);
+vector<short> ECG;
+vector<short> PCG_min;
+vector<short> PCG_max;
 
 int _tmain(int argc, _TCHAR* argv[])
 {
+	
+
+	physio();
+
 	/* open data */
 	cout << "Load started.\n";
-	string filename = "./RF/52101_ssd.crf";
+	string filename = "D:/RFdata/study/20151120/sector/RF20151120150735.crf";
 	ifstream fin(filename, ios_base::in | ios_base::binary);
 	if (!fin){
 		cout << "couldn't load file.\n";
@@ -98,7 +108,22 @@ int _tmain(int argc, _TCHAR* argv[])
 	//delete first frame
 	fin.seekg((line * ch * (sample + 3))* sizeof(short), ios_base::cur);
 	frame = frame - 1;
-
+	int physio_offset = 1000 / FR;
+	ECG.erase(ECG.begin(), ECG.begin() + physio_offset);
+	PCG_min.erase(PCG_min.begin(), PCG_min.begin() + physio_offset);
+	PCG_max.erase(PCG_max.begin(), PCG_max.begin() + physio_offset);
+	ofstream pecg("./ECG.dat", ios_base::out);
+	ofstream ppcgmin("./PCG_min.dat", ios_base::out);
+	ofstream ppcgmax("./PCG_max.dat", ios_base::out);
+	ofstream framepoint("./fp.dat", ios_base::out);
+	for (int i = 0; i < ECG.size(); ++i){
+		pecg << i * (1000 / 998) << " " << ECG[i] << "\n";
+		ppcgmin << i * (1000 / 998) << " " << PCG_min[i] << "\n";
+		ppcgmax << i * (1000 / 998) << " " << PCG_max[i] << "\n";
+	}
+	for (int i = 0; i < frame; ++i)
+		framepoint << i * (1000 / FR) << " 250\n";
+	framepoint.close();
 	/* load RF data */
 	// RF[frame][line][ch][sample]
 	cout << "initializing array...\n";
@@ -139,6 +164,7 @@ int _tmain(int argc, _TCHAR* argv[])
 				}
 			}
 		}
+	
 	
 	// push back method
 	//vector<vector<vector<vector<short>>>> RF;
@@ -219,6 +245,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 				//do FFT
 				ippsFFTFwd_CToC_32fc(ipsrc, ipdst, specf, workbuff);
+				ippsZero_8u(workbuff, size_workf);
 				//double positive part and delete negative part
 				for (int l = 0; l < sample / 2; ++l){
 					ipdst[l].re = ipdst[l].re * 2 / sample;
@@ -239,6 +266,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 				//do IFFT
 				ippsFFTInv_CToC_32fc(ipsrc2, ipdst2, speci, workbufi);
+				ippsZero_8u(workbufi, size_worki);
 				
 				//save
 				for (int l = 0; l < 4 * sample; ++l){
@@ -259,7 +287,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	ofstream fout(fname, ios_base::out);
 	for (int i = 0; i < 4 * sample; ++i)
 		fout << i << " " << elere[0][0][0][i] << "\n";
-
+	fout.close();
 
 
 	/* interpolation */
@@ -313,6 +341,25 @@ int _tmain(int argc, _TCHAR* argv[])
 	vector<vector<vector<vector<float>>>>().swap(elere);
 	vector<vector<vector<vector<float>>>>().swap(eleim);
 
+	vector<vector<vector<float>>> env(frame, vector<vector<float>>(line, vector<float>(sample, 0)));
+	for (int i = 0; i < frame; ++i)
+		for (int j = 0; j < line; ++j)
+			for (int k = 0; k < sample; ++k)
+				env[i][j][k] = sqrt(pow(RFre[i][j][k], 2) + pow(RFim[i][j][k], 2));
+
+	fout.open("./env.dat", ios_base::out);
+	for (int i = 0; i < line; ++i){
+		for (int j = 0; j < sample; ++j)
+			fout << i << " " << j << " " << env[0][i][j] << "\n";
+		fout << "\n";
+	}
+	fout.close();
+
+	Bsector(env[0], max_angle);
+
+
+
+	
 	return 0;
 }
 

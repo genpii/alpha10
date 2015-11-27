@@ -27,16 +27,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 	return DefWindowProc(hwnd, msg, wp, lp);
 }
 
-LRESULT CALLBACK btn(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
-
-	switch (msg) {
-	case WM_LBUTTONUP:
-		return 1;
-	default:
-		return 0;
-	}
-}
-
 int pageb(int x1, int y1, int nx, int ny, char *ch) {
 
 	WNDCLASS winc;
@@ -58,6 +48,11 @@ int pageb(int x1, int y1, int nx, int ny, char *ch) {
 	if (hwnd == NULL) return 0;
 	
 	return 1;
+}
+
+void gspt(int x1, int y1, COLORREF color) {
+
+	SetPixel(hdc, x1, y1, color);
 }
 
 void gsline(int x1, int y1, int x2, int y2, COLORREF color) {
@@ -99,6 +94,7 @@ COLORREF gscol256(int ir, int ig, int ib) {
 
 void ptext(int x1, int y1, int len, char *ch) {
 
+	SetTextColor(hdc, RGB(0, 0, 0));
 	TextOut(hdc, x1, y1, ch, len);
 }
 
@@ -156,5 +152,63 @@ void end(void) {
 	EndPaint(hwnd, &ps);
 }
 
-//gscolor
-//0:black, 1:white, 2:blue, 3:red
+extern BOOL funcSaveRect(LPCTSTR lpFname, HDC hDC, LONG cx, LONG cy, LONG sx, LONG sy)
+{
+	// windowのフレーム分だけ補正
+	sx = sx - 16;
+	sy = sy - 39;
+
+	HANDLE hFile = CreateFile(lpFname, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+
+	if (hFile != INVALID_HANDLE_VALUE) {
+		LONG    lHeadSize = (sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFO));
+		LONG    lWidthSize = (sx * sizeof(DWORD));
+		LONG    lImageSize = (lWidthSize * sy);
+		DWORD   dwSize;
+
+		// BITMAPFILEHEADERの初期化
+		BITMAPFILEHEADER bmpHead = { 0 };
+		bmpHead.bfType = 0x4D42;       // 識別子(BM)
+		bmpHead.bfSize = lHeadSize + lImageSize;
+		bmpHead.bfReserved1 = 0;
+		bmpHead.bfReserved2 = 0;
+		bmpHead.bfOffBits = lHeadSize;
+
+		// BITMAPINFOの初期化
+		BITMAPINFO bmpInfo = { 0 };
+		bmpInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+		bmpInfo.bmiHeader.biWidth = sx;
+		bmpInfo.bmiHeader.biHeight = sy;
+		bmpInfo.bmiHeader.biPlanes = 1;
+		bmpInfo.bmiHeader.biBitCount = 32;
+		bmpInfo.bmiHeader.biCompression = BI_RGB;
+		bmpInfo.bmiHeader.biSizeImage = 0;
+		bmpInfo.bmiHeader.biXPelsPerMeter = 0;
+		bmpInfo.bmiHeader.biYPelsPerMeter = 0;
+		bmpInfo.bmiHeader.biClrUsed = 0;
+		bmpInfo.bmiHeader.biClrImportant = 0;
+
+		// DIBセクションの作成
+		LPDWORD     lpPixel;    // ピクセル配列
+		HBITMAP     hBitmap;    // ビットマップ
+		HDC         hSaveDC;    // 保存スクリーン
+		hBitmap = CreateDIBSection(NULL, &bmpInfo, DIB_RGB_COLORS, (LPVOID*)&lpPixel, NULL, 0);
+		hSaveDC = CreateCompatibleDC(hDC);
+		SelectObject(hSaveDC, hBitmap);
+
+		// 保存領域のコピー
+		BitBlt(hSaveDC, 0, 0, sx, sy, hDC, cx, cy, SRCCOPY);
+
+		// ファイルに書き込む
+		WriteFile(hFile, &bmpHead, sizeof(BITMAPFILEHEADER), &dwSize, NULL);
+		WriteFile(hFile, &bmpInfo, sizeof(BITMAPINFO), &dwSize, NULL);
+		WriteFile(hFile, lpPixel, lImageSize, &dwSize, NULL);
+
+		// DIBセクションの破棄
+		DeleteDC(hSaveDC);
+		DeleteObject(hBitmap);
+		CloseHandle(hFile);
+		return TRUE;
+	}
+	return FALSE;
+}

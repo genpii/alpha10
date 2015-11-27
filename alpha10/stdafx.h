@@ -23,3 +23,5 @@
 #include <complex> //複素数
 #include <ipp.h> //IPP 信号処理
 #include <ippm.h> //IPP 行列
+#include <list> //list
+#include <algorithm> //アルゴリズム
