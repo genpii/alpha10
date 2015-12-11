@@ -25,3 +25,6 @@
 #include <ippm.h> //IPP s—ñ
 #include <list> //list
 #include <algorithm> //ƒAƒ‹ƒSƒŠƒYƒ€
+#include <direct.h> //ŠK‘w‘–¸
+#include <array>
+

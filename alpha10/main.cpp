@@ -3,111 +3,46 @@
 //author: Gen Onodera
 
 #include "stdafx.h"
-
+#include "fileopen.h"
 
 using namespace std;
 int physio();
 void Bsector(const vector<vector<float>>& env, float dangle);
+//void BSector2(const vector<vector<float>>& env, float dangle, float fs);
+void Bsector3(const vector<vector<float>>& env, float dangle);
 vector<short> ECG;
 vector<short> PCG_min;
 vector<short> PCG_max;
-
+//const vector<vector<float>>& env, float dangle
 int _tmain(int argc, _TCHAR* argv[])
 {
-	
+	//Bsector();
 
 	physio();
 
 	/* open data */
 	cout << "Load started.\n";
 	string filename = "D:/RFdata/study/20151120/sector/RF20151120150735.crf";
-	ifstream fin(filename, ios_base::in | ios_base::binary);
-	if (!fin){
-		cout << "couldn't load file.\n";
-		return 1;
-	}
-	cout << "Success!\n" << "Loaded " << filename << "\n";
-	
-	/* load header */
-	fin.clear();
-	fin.seekg(32, ios_base::beg);
+	//string filename = "D:/RFdata/study/20151026/sample1026.crf";
+	a10 raw(filename);
+	raw.loadheader();
+	raw.printheader();
 
-	unsigned short len_record, frame, line, sample, ch;
-	fin.read((char*)&len_record, sizeof(unsigned short));
-	fin.read((char*)&frame, sizeof(unsigned short));
-	const unsigned short frame2 = frame;
-	fin.read((char*)&line, sizeof(unsigned short));
-	fin.read((char*)&sample, sizeof(unsigned short));
-	fin.read((char*)&ch, sizeof(unsigned short));
-	cout << "-----RF Data Information-----\n" << "record length:" << len_record << "\n";
-	cout << "number of frames:" << frame << "\n";
-	cout << "number of lines:" << line << "\n";
-	cout << "samples per line:" << sample << "\n";
-	cout << "number of channel:" << ch << "\n";
-
-	fin.seekg(24, ios_base::cur);
-	char* probe_name = (char*)malloc(8+1);
-	float frq_probe, max_angle, offset_from_center, rad_of_cuv,
-		frq_t, frq_r, frq_s, acq_start, acq_end, range;
-	unsigned short probe_type, pole, wave, burst, line_start, line_end, max_beam;
-	fin.read(probe_name, 8);
-	probe_name[8] = '\0';
-	fin.read((char*)&probe_type, sizeof(unsigned short));
-	fin.read((char*)&frq_probe, sizeof(float));
-	fin.read((char*)&pole, sizeof(unsigned short));
-	fin.read((char*)&wave, sizeof(unsigned short));
-	fin.read((char*)&max_angle, sizeof(float));
-	fin.read((char*)&offset_from_center, sizeof(float));
-	fin.read((char*)&rad_of_cuv, sizeof(float));
-	fin.read((char*)&frq_t, sizeof(float));
-	fin.read((char*)&frq_r, sizeof(float));
-	fin.read((char*)&frq_s, sizeof(float));
-	fin.read((char*)&burst, sizeof(unsigned short));
-	fin.read((char*)&acq_start, sizeof(float));
-	fin.read((char*)&acq_end, sizeof(float));
-	fin.read((char*)&line_start, sizeof(unsigned short));
-	fin.read((char*)&line_end, sizeof(unsigned short));
-	fin.read((char*)&max_beam, sizeof(unsigned short));
-	fin.read((char*)&range, sizeof(float));
-	cout << "probe name:" << probe_name << "\n";
-	cout << "probe type:" << probe_type << "\n";
-	cout << "probe frequency[MHz]:" << frq_probe << "\n";
-	cout << "transmit pole:" << pole << "\n";
-	cout << "wave pattern:" << wave << "\n";
-	cout << "max angle of probe:" << max_angle << "\n";
-	cout << "offset from center[mm]:" << offset_from_center << "\n";
-	cout << "radius of curvature[mm]:" << rad_of_cuv << "\n";
-	cout << "transmit frequency[MHz]:" << frq_t << "\n";
-	cout << "receiving frequency[MHz]:" << frq_r << "\n";
-	cout << "sampling frequency[MHz]:" << frq_s << "\n";
-	cout << "burst cycle:" << burst << "\n";
-	cout << "top of ROI[mm]:" << acq_start << "\n";
-	cout << "bottom of ROI[mm]:" << acq_end << "\n";
-	cout << "beam number of acquire start:" << line_start << "\n";
-	cout << "beam number of acquire end:" << line_end << "\n";
-	cout << "max number of beams per frame:" << max_beam << "\n";
-	cout << "display range[mm]:" << range << "\n";
-
-	fin.seekg(24, ios_base::cur);
-	unsigned short focus_num, PRT;
-	float focus_first, FR;
-	fin.read((char*)&focus_num, sizeof(unsigned short));
-	fin.read((char*)&focus_first, sizeof(float));
-	fin.read((char*)&PRT, sizeof(unsigned short));
-	fin.read((char*)&FR, sizeof(float));
-	cout << "number of focusing:" << focus_num << "\n";
-	cout << "first transmit focus[mm]:" << focus_first << "\n";
-	cout << "PRT[us]:" << PRT << "\n";
-	cout << "frame rate[Hz]:" << FR << "\n";
-
-	fin.seekg(352, ios_base::beg);
-	double RF_size;
-	fin.read((char*)&RF_size, sizeof(double));
-	cout << "RF data size:" << RF_size << endl;
+	unsigned short frame = raw.frame;
+	unsigned short line = raw.line;
+	unsigned short sample = raw.sample;
+	unsigned short ch = raw.ch;
+	float max_angle = raw.max_angle;
+	float frq_t = raw.frq_t;
+	float frq_r = raw.frq_r;
+	float frq_s = raw.frq_s;
+	float FR = raw.FR;
 
 	//delete first frame
-	fin.seekg((line * ch * (sample + 3))* sizeof(short), ios_base::cur);
+	raw.go((line * ch * (sample + 3))* sizeof(short));
 	frame = frame - 1;
+
+
 	int physio_offset = 1000 / FR;
 	ECG.erase(ECG.begin(), ECG.begin() + physio_offset);
 	PCG_min.erase(PCG_min.begin(), PCG_min.begin() + physio_offset);
@@ -123,6 +58,9 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 	for (int i = 0; i < frame; ++i)
 		framepoint << i * (1000 / FR) << " 250\n";
+	pecg.close();
+	ppcgmin.close();
+	ppcgmax.close();
 	framepoint.close();
 	/* load RF data */
 	// RF[frame][line][ch][sample]
@@ -135,6 +73,10 @@ int _tmain(int argc, _TCHAR* argv[])
 	vector<vector<vector<vector<short>>>> RF(frame,
 		vector<vector<vector<short>>>(line, vector<vector<short>>(ch, vector<short>(sample - 1, 0))));
 
+	//vector<vector<vector<vector<short>>>> RF;
+	
+
+
 	/*short ****RF = new short***[frame];
 	for (int i = 0; i < frame; ++i){
 		RF[i] = new short**[line];
@@ -146,7 +88,6 @@ int _tmain(int argc, _TCHAR* argv[])
 		}
 	}*/
 	cout << "loading RF...\n";
-
 	for (int i = 0; i < frame; ++i)
 		for (int j = 0; j < line; ++j){
 			for (int k = 0; k < ch - 16; ++k){ // back of 80 elements
@@ -164,25 +105,6 @@ int _tmain(int argc, _TCHAR* argv[])
 				}
 			}
 		}
-	
-	
-	// push back method
-	//vector<vector<vector<vector<short>>>> RF;
-	/*for (int i = 0; i < frame; ++i){
-		RF.push_back(vector<vector<vector<short>>>());
-		for (int j = 0; j < line; ++j){
-			RF[i].push_back(vector<vector<short>>());
-			for (int k = 0; k < ch; ++k){
-				fin.seekg(8, ios_base::cur);
-				RF[i][j].push_back(vector<short>());
-				for (int l = 0; l < sample - 1; ++l){
-					fin.read((char*)&tmp, sizeof(short));
-					if (tmp >= 2048) tmp -= 4096;
-					RF[i][j][k].push_back(tmp);
-				}
-			}
-		}
-	}*/
 
 	cout << "removing bias...\n";
 	
@@ -197,10 +119,54 @@ int _tmain(int argc, _TCHAR* argv[])
 					RF[i][j][k][l] -= bias;	
 			}
 
+	///*frequency analytic*/
+	//float han[60];
+	//for (int i = 0; i < 60; ++i)
+	//	han[i] = 0.5 - 0.5 * cos(2.0 * M_PI * i / 60);
+
+	//Ipp8u *sbuf, *ibuf, *wbuf;
+	//int s_s, s_i, s_w;
+	//IppsFFTSpec_C_32fc *sp = 0;
+	//Ipp32fc *src = ippsMalloc_32fc(1024);
+	//ippsFFTGetSize_C_32fc(10, IPP_FFT_NODIV_BY_ANY, ippAlgHintNone, &s_s, &s_i, &s_w);
+	//sbuf = ippsMalloc_8u(s_s);
+	//ibuf = ippsMalloc_8u(s_i);
+	//wbuf = ippsMalloc_8u(s_w);
+	//ippsFFTInit_C_32fc(&sp, 10, IPP_FFT_NODIV_BY_ANY, ippAlgHintNone, sbuf, ibuf);
+	//for (int i = 0; i < 60; ++i)
+	//	src[i].re = RF[60][17][90][i + 1270] * han[i];
+	//for (int i = 0; i < 1024 - 60; ++i)
+	//	src[i + 60].re = 0.0;
+	//ippsFFTFwd_CToC_32fc(src, src, sp, wbuf);
+	//float freqi, tmpfc;
+	//ofstream spect("./spectrum.dat", ios_base::out);
+	//for (int i = 0; i < 512; ++i){
+	//	freqi = static_cast<float>(i) * 15 / 512;
+	//	tmpfc = 10.0 * log10(pow(src[i].re, 2) + pow(src[i].im, 2));
+	//	spect << freqi << " " << tmpfc << "\n";
+	//}
+	//spect.close();
+
+	///*calculate differences between frames before and after*/
+	//short tmps, th;
+	//th = 500; // threshold
+	//for (int i = 0; i < 10; ++i){
+	//	for (int j = 0; j < line; ++j){
+	//		for (int k = 0; k < ch; ++k){
+	//			for (int l = 0; l < sample - 1; ++l){
+	//				tmps = abs(RF[i + 55][j][k][l] - RF[i + 54][j][k][l]);
+	//				if (tmps > th && i==5)
+	//					cout << "over " << th << ":(" << i + 55 << " " << j << " " << k << " " << l << ")\n";
+	//			}
+	//		}
+	//	}
+	//}
+
+
 	/* do FFT and IFFT */
 	cout << "creating analytic signal...\n";
 	
-	//initialize focused RF array
+	//initialize focused RF array(vector)
 	vector<vector<vector<vector<float>>>> elere(frame,
 		vector<vector<vector<float>>>(line, vector<vector<float>>(ch, vector<float>(4 * sample, 0))));
 	vector<vector<vector<vector<float>>>> eleim(frame,
@@ -270,8 +236,8 @@ int _tmain(int argc, _TCHAR* argv[])
 				
 				//save
 				for (int l = 0; l < 4 * sample; ++l){
-					elere[i][j][k][l] = ipdst2[l].re;
-					eleim[i][j][k][l] = ipdst2[l].im;
+					elere[i][j][k][l] = 4 * sample * ipdst2[l].re;
+					eleim[i][j][k][l] = 4 * sample * ipdst2[l].im;
 				}
 				ippsZero_32fc(ipdst2, 4 * sample);
 			}
@@ -298,18 +264,19 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	//calculate delay
 	const float c0 = 1540.0;
-	int shift, add;
-	float cendep; //out-bound(um)
+	int point, add;
+	float eledep; //in-bound(um)
 	float smpt = 1.0 / frq_s; //us
+	float decimal;
 	vector<float> xi(ch, 0);
 	for (int i = 0; i < ch; ++i)
 		xi[i] = 0.2 * (47.5 - i) * 1e+3; //um
 	vector<float> theta(line, 0);
 	for (int i = 0; i < line; ++i)
 		theta[i] = max_angle * ((line - 1) / 2 - i) * (M_PI / 180.0);
-	vector<float> eledep(sample, 0);
+	vector<float> cendep(sample, 0);
 	for (int i = 0; i < sample; ++i)
-		eledep[i] = i * (c0 /(8 * frq_s)); //in-bound(um)
+		cendep[i] = i * (c0 /(4 * frq_s)); //out-bound(um)
 
 	//addition
 	for (int i = 0; i < frame; ++i){
@@ -317,11 +284,12 @@ int _tmain(int argc, _TCHAR* argv[])
 			for (int k = 0; k < sample; ++k){
 				add = 0;
 				for (int l = 0; l < ch; ++l){
-					cendep = xi[l] * sin(theta[j]) + sqrt(pow(eledep[k], 2) - pow(xi[l] * cos(theta[j]), 2));
-					shift = static_cast<int>((eledep[k] + cendep) / (c0 / (8 * frq_s)));
-					if (shift >= 0 && shift < 4 * sample){
-						RFre[i][j][k] = RFre[i][j][k] + elere[i][j][l][shift];
-						RFim[i][j][k] = RFim[i][j][k] + eleim[i][j][l][shift];
+					eledep = sqrt(pow(xi[l], 2) + pow(cendep[k], 2) - 2 * xi[l] * cendep[k] * sin(theta[j]));
+					point = static_cast<int>((cendep[k] + eledep) / (c0 / (8 * frq_s)));
+					decimal = (cendep[k] + eledep) / (c0 / (8 * frq_s)) - point;
+					if (point < 4 * sample - 1){
+						RFre[i][j][k] += (elere[i][j][l][point] + (elere[i][j][l][point + 1] - elere[i][j][l][point]) * decimal);
+						RFim[i][j][k] += (eleim[i][j][l][point] + (eleim[i][j][l][point + 1] - eleim[i][j][l][point]) * decimal);
 						++add;
 					}
 				}
@@ -357,8 +325,10 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	Bsector(env[0], max_angle);
 
+	//BSector2(env[0], max_angle, frq_s);
 
 
+	//Bsector3(env[0], max_angle);
 	
 	return 0;
 }

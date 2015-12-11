@@ -1,5 +1,6 @@
 #pragma once
 #include <windows.h>
+#include <math.h>
 
 HINSTANCE hInstance = GetModuleHandle(0);
 HWND hwnd;
@@ -82,6 +83,25 @@ void gsrect(int x1, int y1, int x2, int y2, COLORREF color_in, COLORREF color_ou
 	Rectangle(hdc, x1, y1, x2, y2);
 	DeleteObject(hpen);
 	DeleteObject(brush);
+}
+
+void gsarc(int x0, int y0, float r, float theta1, float theta2, int thickness, COLORREF color) {
+
+	hpen = CreatePen(PS_SOLID, thickness, color);
+	SelectObject(hdc, hpen);
+	float temp = theta1;
+	theta1 = theta2;
+	theta2 = temp + 360;
+	int x1 = (int)round(x0 - r);
+	int y1 = (int)round(y0 - r);
+	int x2 = (int)round(x0 + r);
+	int y2 = (int)round(y0 + r);
+	int x3 = (int)round(x0 + r*cos(theta1*M_PI / 180));
+	int y3 = (int)round(y0 + r*sin(theta1*M_PI / 180));
+	int x4 = (int)round(x0 + r*cos(theta2*M_PI / 180));
+	int y4 = (int)round(y0 + r*sin(theta2*M_PI / 180));
+	Arc(hdc, x1, y1, x2, y2, x3, y3, x4, y4);
+	DeleteObject(hpen);
 }
 
 COLORREF gscol256(int ir, int ig, int ib) {
