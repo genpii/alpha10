@@ -24,11 +24,13 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	/* open data */
 	cout << "Load started.\n";
-	//string filename = "D:/RFdata/study/20151120/sector/RF20151120150735.crf";
-	string filename = "D:/RFdata/study/20151026/sample1026.crf";
+	string filename = "D:/RFdata/study/20151120/sector/RF20151120150735.crf";
+	//string filename = "D:/RFdata/study/20151026/sample1026.crf";
 	a10 raw(filename);
 	raw.loadheader();
+	raw.frq_s = 30.0;
 	raw.printheader();
+	
 
 	raw.frame = 1;
 	unsigned short frame = raw.frame;

@@ -15,7 +15,7 @@ void cairo(const vector<vector<float>>& env, float dangle)
 	vector<int>::iterator it;
 	int tmp;
 	for (int i = 0; i < line; ++i){
-		maxvec[i] = *max_element(env[i].begin(), env[i].end());
+		maxvec[i] = *max_element(env[i].begin() + 128, env[i].end() - 128);
 	}
 	float max = *max_element(maxvec.begin(), maxvec.end());
 	
