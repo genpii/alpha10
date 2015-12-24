@@ -3,6 +3,8 @@
 #include "stdafx.h"
 
 using namespace std;
+
+/*class of fileopen.cpp*/
 class a10 {
 	ifstream fin;
 public:

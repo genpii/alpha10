@@ -1,4 +1,6 @@
 // fileopen.cpp
+/*This program defines the class for opening and storing a-10 element data.
+	declaration part is in "fileopen.h".*/
 
 #include "stdafx.h"
 #include "fileopen.h"
@@ -171,6 +173,7 @@ void a10::loadRF0(int frame)
 		fin.seekg((line * ch * (sample + 3))* sizeof(short), ios_base::cur);
 
 	short tmp;
+	cout << "loading RF(only one frame)...\n";
 	for (int i = 0; i < line; ++i){
 		for (int j = 0; j < ch - 16; ++j){ // back of 80 elements
 			fin.seekg(8, ios_base::cur); //attribute 6byte channel number 2byte
@@ -192,18 +195,25 @@ void a10::loadRF0(int frame)
 
 void a10::freeRF()
 {
-	if (!RF.empty())
+	if (!RF.empty()){
 		vector<vector<vector<vector<short>>>>().swap(RF);
+		cout << "free RF data!\n";
+	}
+	else cout << "RF data is empty.\n";
 }
 
 void a10::freeRF0()
 {
-	if (!RF0.empty())
+	if (!RF0.empty()){
 		vector<vector<vector<short>>>().swap(RF0);
+		cout << "free RF data!\n";
+	}
+	else cout << "RF data is empty.\n";
 }
 
 void a10::rmbias()
 {
+	cout << "removing bias...\n";
 	int bias = 0;
 	for (int i = 0; i < frame; ++i)
 		for (int j = 0; j < line; ++j)

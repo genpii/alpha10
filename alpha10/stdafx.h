@@ -11,7 +11,6 @@
 #include <tchar.h>
 
 
-
 // TODO: プログラムに必要な追加ヘッダーをここで参照してください。
 #define _USE_MATH_DEFINES
 #include <iostream> //コンソール入出力
@@ -26,5 +25,5 @@
 #include <list> //list
 #include <algorithm> //アルゴリズム
 #include <direct.h> //階層走査
-#include <array>
+#include <array> //C++ STL配列
 
