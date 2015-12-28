@@ -1,6 +1,4 @@
 #include "stdafx.h"
-//#include <cairo\cairo-win32.h>
-//#include <cairomm/cairomm.h>
 #include <cairo-win32.h>
 
 

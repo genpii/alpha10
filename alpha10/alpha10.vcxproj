@@ -93,7 +93,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Bsector.cpp" />
+    <ClCompile Include="Bsector_OpenCV.cpp" />
     <ClCompile Include="Bsector_cairo.cpp" />
     <ClCompile Include="fileopen.cpp" />
     <ClCompile Include="main.cpp" />
@@ -104,10 +104,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="fileopen.h" />
+    <ClInclude Include="header.h" />
     <ClInclude Include="graphics.h" />
     <ClInclude Include="stdafx.h" />
-    <ClInclude Include="targetver.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

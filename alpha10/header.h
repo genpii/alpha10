@@ -4,8 +4,29 @@
 
 using namespace std;
 
+/*functions*/
+int physio();
+void Bsector(const vector<vector<float>>& env, float dangle);
+void cairo(const vector<vector<float>>& env, float dangle);
+//void BSector2(const vector<vector<float>>& env, float dangle, float fs);
+//void Bsector3(const vector<vector<float>>& env, float dangle);
+
+
 /*class of fileopen.cpp*/
-class a10 {
+class file {
+	ifstream fin;
+public:	
+	file(string filename);
+	~file();
+
+	void open(string filename);
+	void start();
+	void warp(int pos);
+	void go(int pos);
+};
+
+
+class a10 : file{
 	ifstream fin;
 public:
 	unsigned short len_record, frame, line, sample, ch;
@@ -22,9 +43,6 @@ public:
 	//function
 	a10(string filename);
 	~a10();
-	void start();
-	void warp(int pos);
-	void go(int pos);
 	
 	void loadheader();
 	void printheader();
@@ -34,4 +52,18 @@ public:
 	void freeRF0();
 	void rmbias();
 	short eledat(int frame, int line, int ch, int sample);
+};
+
+/*class of physio.cpp*/
+class physio : file{
+	ifstream fin;
+public:
+	string fn;
+	vector<short> ECG;
+	vector<short> PCG_min;
+	vector<short> PCG_max;
+
+	physio(string filename);
+	~physio();
+	int extract(int offset);
 };

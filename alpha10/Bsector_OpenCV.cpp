@@ -10,18 +10,15 @@ using namespace cv;
 //const vector<vector<float>>& env, float dangle
 void Bsector(const vector<vector<float>>& env, float dangle)
 {
-	//Mat src2 = Mat::zeros(320, 320, CV_16SC3);
-	Mat src2 = imread("./itsuki2.jpg");
-	resize(src2, src2, Size(0, 0), 0.1, 0.1);
-	Mat dst2;
-	cvtColor(src2, dst2, CV_BGR2GRAY);
-	threshold(dst2, src2, 120, 255, THRESH_BINARY);
-	imshow("sample", src2);
-	imwrite("dst.jpg", src2);
-	waitKey(0);
-	
-	
-	
+	////Mat src2 = Mat::zeros(320, 320, CV_16SC3);
+	//Mat src2 = imread("./itsuki2.jpg");
+	//resize(src2, src2, Size(0, 0), 0.1, 0.1);
+	//Mat dst2;
+	//cvtColor(src2, dst2, CV_BGR2GRAY);
+	//threshold(dst2, src2, 120, 255, THRESH_BINARY);
+	//imshow("sample", src2);
+	//imwrite("dst.jpg", src2);
+	//waitKey(0);
 	
 	// calculate max value for normalization
 	int line = static_cast<int>(distance(env.begin(), env.end()));

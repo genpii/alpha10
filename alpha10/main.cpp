@@ -1,37 +1,41 @@
 //main.cpp
 
 //author: Gen Onodera
+/* This C++ program is for the element RF data acquired by Hitachi Aloka alpha-10.
+	<source>
+		fileopen.cpp - open and save the binary data including signal and other information
+		physio.cpp - open DICOM data in order to extract physio data
+		Bsector_cairo.cpp - draw sector B-mode image using cairo graphic library
+		Bsector_OpenCV.cpp - draw sector B-mode image using OpenCV
+	<header>
+		stdafx.h - include C++ STL 
+		header.h - header of hand-made classes and fuctions
+		graphics.h - reprodution libXG library using Windows API
+*/
 
 #include "stdafx.h"
-#include "fileopen.h"
+#include "header.h"
 
 using namespace std;
-int physio();
-void Bsector(const vector<vector<float>>& env, float dangle);
-void cairo(const vector<vector<float>>& env, float dangle);
-//void BSector2(const vector<vector<float>>& env, float dangle, float fs);
-//void Bsector3(const vector<vector<float>>& env, float dangle);
+
 vector<short> ECG;
 vector<short> PCG_min;
 vector<short> PCG_max;
 //const vector<vector<float>>& env, float dangle
 int _tmain(int argc, _TCHAR* argv[])
 {
-	//cairo();
-	
-	
 	physio();
 
 	/* open data */
 	cout << "Load started.\n";
-	string filename = "D:/RFdata/study/20151120/sector/RF20151120150735.crf";
+	//string filename = "D:/RFdata/study/20151120/sector/RF20151120150735.crf";
 	//string filename = "D:/RFdata/study/20151026/sample1026.crf";
+	string filename = "D:/RFdata/study/20151222/1/1.crf";
 	a10 raw(filename);
 	raw.loadheader();
 	raw.frq_s = 30.0;
 	raw.printheader();
 	
-
 	raw.frame = 1;
 	unsigned short frame = raw.frame;
 	unsigned short line = raw.line;
@@ -283,13 +287,6 @@ int _tmain(int argc, _TCHAR* argv[])
 			for (int k = 0; k < sample; ++k)
 				env[i][j][k] = sqrt(pow(RFre[i][j][k], 2) + pow(RFim[i][j][k], 2));
 
-	/*fout.open("./env.dat", ios_base::out);
-	for (int i = 0; i < line; ++i){
-		for (int j = 0; j < sample; ++j)
-			fout << i << " " << j << " " << env[0][i][j] << "\n";
-		fout << "\n";
-	}
-	fout.close();*/
 
 	//Bsector(env[0], max_angle);
 	//BSector2(env[0], max_angle, frq_s);
