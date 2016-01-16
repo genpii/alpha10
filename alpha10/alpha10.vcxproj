@@ -93,19 +93,21 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Bsector_OpenCV.cpp" />
+    <ClCompile Include="Bsector_WinAPI.cpp" />
     <ClCompile Include="Bsector_cairo.cpp" />
-    <ClCompile Include="fileopen.cpp" />
+    <ClCompile Include="fileopen2.cpp" />
+    <ClCompile Include="GN.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="physio.cpp" />
+    <ClCompile Include="DSP.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="header.h" />
     <ClInclude Include="graphics.h" />
+    <ClInclude Include="header.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

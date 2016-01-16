@@ -1,5 +1,7 @@
 #include "stdafx.h"
 #include <cairo-win32.h>
+#include <cairo-svg.h>
+#include <cairo-ps.h>
 
 
 using namespace std;
@@ -29,15 +31,10 @@ void cairo(const vector<vector<float>>& env, float dangle)
 	cairo_surface_t *surface;
 	cairo_t *cr;
 
-	surface = cairo_image_surface_create(CAIRO_FORMAT_RGB24, sample / 2 , sample / 2);
+	surface = cairo_svg_surface_create("h.svg", sample / 2, sample / 2);
 	cr = cairo_create(surface);
 	cairo_set_line_width(cr, 1.0);
 
-	//cairo_select_font_face(cr, "serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-	//cairo_set_font_size(cr, 64.0);
-	//cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
-	//cairo_move_to(cr, 10.0, 50.0);
-	//cairo_show_text(cr, "Gen Onodera");
 	for (int i = 0; i < line; ++i){
 		eangle = sangle + static_cast<double>(dangle * (M_PI / 180));
 		for (int j = 0; j < sample / 4; ++j){
@@ -54,7 +51,7 @@ void cairo(const vector<vector<float>>& env, float dangle)
 	}
 
 	cairo_destroy(cr);
-	cairo_surface_write_to_png(surface, "hello.png");
+	//cairo_svg_surface_create(surface, "hello.png");
 	cairo_surface_destroy(surface);
 
 

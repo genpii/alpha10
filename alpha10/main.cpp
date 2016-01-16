@@ -7,10 +7,11 @@
 		physio.cpp - open DICOM data in order to extract physio data
 		Bsector_cairo.cpp - draw sector B-mode image using cairo graphic library
 		Bsector_OpenCV.cpp - draw sector B-mode image using OpenCV
+		DSP.cpp - functions of digital signal processing using Intel IPP
 	<header>
 		stdafx.h - include C++ STL 
 		header.h - header of hand-made classes and fuctions
-		graphics.h - reprodution libXG library using Windows API
+		graphics.h - reprodution of libXG library using Windows API
 */
 
 #include "stdafx.h"
@@ -24,13 +25,15 @@ vector<short> PCG_max;
 //const vector<vector<float>>& env, float dangle
 int _tmain(int argc, _TCHAR* argv[])
 {
+
 	physio();
 
 	/* open data */
 	cout << "Load started.\n";
 	//string filename = "D:/RFdata/study/20151120/sector/RF20151120150735.crf";
 	//string filename = "D:/RFdata/study/20151026/sample1026.crf";
-	string filename = "D:/RFdata/study/20151222/1/1.crf";
+	//string filename = "D:/RFdata/study/20151222/1/1.crf";
+	string filename = "D:/RFdata/study/20160104/2/RF.crf";
 	a10 raw(filename);
 	raw.loadheader();
 	raw.frq_s = 30.0;
@@ -47,7 +50,6 @@ int _tmain(int argc, _TCHAR* argv[])
 	float frq_s = raw.frq_s;
 	float FR = raw.FR;
 
-
 	int physio_offset = 1000 / FR;
 	ECG.erase(ECG.begin(), ECG.begin() + physio_offset);
 	PCG_min.erase(PCG_min.begin(), PCG_min.begin() + physio_offset);
@@ -62,7 +64,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		ppcgmax << i * (1000 / 998) << " " << PCG_max[i] << "\n";
 	}
 	for (int i = 0; i < frame; ++i)
-		framepoint << i * (1000 / FR) << " 250\n";
+		framepoint << i * (1000 / FR) << " 275\n";
 	pecg.close();
 	ppcgmin.close();
 	ppcgmax.close();
@@ -127,10 +129,111 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 	fout2.close();*/
 
+	/*ostringstream fst;
+	ofstream foutt(fst.str(), ios_base::out);
+	for (int i = 0; i < 7; ++i){
+		for (int j = 0; j < line; ++j){
+			fst << "./diff0104/fr" << i + 10 << "/l" << j << ".dat";
+			foutt.open(fst.str(), ios_base::out);
+			fst.clear();
+			fst.str("");
+			for (int k = 0; k < ch; ++k){
+				for (int l = 0; l < sample - 1; ++l){
+					foutt << l << " " << raw.RF[i + 10][j][k][l] - raw.RF[i + 9][j][k][l] - k * 4096 << "\n";
+				}
+				foutt << "\n";
+			}
+			foutt.close();
+		}
+	}*/
+	//cross correlation
+	//IppStatus status;
+	//int lowlag = -500;
+	//IppEnum NormA = (IppEnum)(ippAlgAuto | ippsNormA);
+	//int bufSize = 0;
+	//Ipp8u *pBuffer;
+	//const int srcLen = 500;
+	//const int dstLen = 2 * srcLen;
+	//Ipp32f *pSrc1 = ippsMalloc_32f(srcLen);
+	//Ipp32f *pSrc2 = ippsMalloc_32f(srcLen);
+	//Ipp32f *pDst = ippsMalloc_32f(dstLen);
+	//status = ippsCrossCorrNormGetBufferSize(srcLen, srcLen, dstLen, lowlag, ipp32f, NormA, &bufSize);
+
+	//pBuffer = ippsMalloc_8u(bufSize);
+
+	//int avframe = 12;
+	//int avline = 11;
+	//for (int i = 0; i < srcLen; ++i){
+	//	pSrc1[i] = raw.RF[avframe + 1][avline][ch - 1][1500 + i] - raw.RF[avframe][avline][ch - 1][1500 + i];
+	//	//pSrc1[i] = 1.0;
+	//}
+	//
+	//Ipp32f stdev1, stdev2;
+	//ippsStdDev_32f(pSrc1, srcLen, &stdev1, ippAlgHintFast);
+
+	//vector<vector<float>> cc(ch, vector<float>(dstLen, 0));
+
+	//for (int i = 0; i < ch; ++i){
+	//	ippsZero_32f(pSrc2, srcLen);
+	//	ippsZero_32f(pDst, dstLen);
+	//	stdev2 = 0.0;
+	//	
+	//	for (int j = 0; j < srcLen; ++j){
+	//		pSrc2[j] = raw.RF[avframe + 1][avline][i][1500 + j] - raw.RF[avframe][avline][i][1500 + j];
+	//		//pSrc2[j] = 1.0;
+	//	}
+	//	ippsStdDev_32f(pSrc2, srcLen, &stdev2, ippAlgHintAccurate);
+	//	status = ippsCrossCorrNorm_32f(pSrc1, srcLen, pSrc2, srcLen, pDst, dstLen, lowlag, NormA, pBuffer);
+
+	//	for (int j = 0; j < dstLen; ++j){
+	//		if (stdev1 * stdev2 >= 1e-9)
+	//			cc[i][j] = pDst[j] / (stdev1 * stdev2);
+	//		else cc[i][j] = 0.0;
+	//	}
+	//}
+	//ippsFree(pBuffer);
+
+	//vector<size_t> maxcc(ch, 0);
+	//for (int i = 0; i < ch; ++i){
+	//	vector<float>::iterator itrr = max_element(cc[i].begin(), cc[i].end());
+	//	maxcc[i] = distance(cc[i].begin(), itrr);
+	//}
+	//
+	//ippsAbs_32f_I(pSrc1, srcLen);
+	//Ipp32f pMax;
+	//int pIndx;
+	//ippsMaxIndx_32f(pSrc1, srcLen, &pMax, &pIndx);
+	//float maxoff = (pIndx + 1500) / frq_s;
+
+	//ofstream maxc("maxc.dat", ios_base::out); //delay
+	//for (int i = 0; i < ch; ++i){
+	//	if (i >= 15)
+	//		maxc << i << " " << (static_cast<int>(maxcc[i]) - 500) / frq_s << "\n";
+	//}
+	//maxc.close();
+
+	//ofstream fout3("elem.dat", ios_base::out); //delay (raw signal)
+	//for (int i = 0; i < ch; ++i){
+	//	if (i >= 15)
+	//		fout3 << i << " " << (static_cast<int>(maxcc[i]) - 500) / frq_s + maxoff << "\n";
+	//}
+	//fout3.close();
+
+	//string fname = "./ele.dat";
+	//ofstream fout(fname, ios_base::out);
+	//for (int i = 0; i < ch; ++i){
+	//	for (int j = 0; j < dstLen; ++j){
+	//		fout << j << " " << cc[i][j] - 2.0 * i << "\n";
+	//	}
+	//	fout << "\n";
+	//}
+	//fout.close();
+
 
 
 	cout << "creating analytic signal...\n";
 	
+	//frame = 2;
 	//initialize focused RF array(vector)
 	vector<vector<vector<vector<float>>>> elere(frame,
 		vector<vector<vector<float>>>(line, vector<vector<float>>(ch, vector<float>(4 * sample, 0))));
@@ -220,13 +323,6 @@ int _tmain(int argc, _TCHAR* argv[])
 	//vector<vector<vector<vector<short>>>>().swap(RF);
 	raw.freeRF();
 
-	string fname = "./ele.dat";
-	ofstream fout(fname, ios_base::out);
-	for (int i = 0; i < 4 * sample; ++i)
-		fout << i << " " << elere[0][0][0][i] << "\n";
-	fout.close();
-
-
 	/* interpolation */
 	cout << "interpolating...\n";
 
@@ -289,9 +385,9 @@ int _tmain(int argc, _TCHAR* argv[])
 
 
 	//Bsector(env[0], max_angle);
-	//BSector2(env[0], max_angle, frq_s);
+	BSector2(env[0], max_angle, frq_s);
 	//Bsector3(env[0], max_angle);
-	cairo(env[0], max_angle);
+	//cairo(env[0], max_angle);
 	
 	return 0;
 }

@@ -5,6 +5,43 @@
 #include "header.h"
 
 using namespace std;
+file::file(string filename)
+{
+	cout << "open file=" << filename << "\n";
+	fin.open(filename, ios_base::in | ios_base::binary);
+	if (!fin){
+		cout << "couldn't load file.\n";
+	}
+}
+
+file::~file()
+{
+	cout << "delete object.\n";
+}
+
+void file::open(string filename)
+{
+	fin.open(filename, ios_base::in | ios_base::binary);
+	if (!fin){
+		cout << "couldn't load file.\n";
+	}
+}
+
+void file::start()
+{
+	fin.clear();
+	fin.seekg(0, ios_base::beg);
+}
+
+void file::warp(int pos)
+{
+	fin.seekg(pos, ios_base::beg);
+}
+
+void file::go(int pos)
+{
+	fin.seekg(pos, ios_base::cur);
+}
 
 physio::physio(string filename) : file(filename)
 {
@@ -73,8 +110,8 @@ int physio()
 	extern vector<short> PCG_min;
 	extern vector<short> PCG_max;
 
-	string fn = "physio";
-	ifstream fin("./" + fn, ios_base::in | ios_base::binary);
+	string fn = "D:/RFdata/study/20160104/2/2";
+	ifstream fin(fn, ios_base::in | ios_base::binary);
 	if (!fin){
 		cout << "couldn't read physio file!\n";
 		return 1;
@@ -106,7 +143,7 @@ int physio()
 	vector<unsigned char>().swap(check);
 
 	/*extract physio data*/
-	fin.open("./" + fn, ios_base::in | ios_base::binary);
+	fin.open(fn, ios_base::in | ios_base::binary);
 	fin.seekg(dist + 12, ios_base::beg);
 
 	short tmp2 = 0;

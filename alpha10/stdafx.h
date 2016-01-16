@@ -26,4 +26,5 @@
 #include <algorithm> //ƒAƒ‹ƒSƒŠƒYƒ€
 #include <direct.h> //ŠK‘w‘–¸
 #include <array> //C++ STL”z—ñ
+#include <sstream> //stringstream
 

@@ -1,13 +1,13 @@
 // fileopen.cpp
 /*This program defines the class for opening and storing a-10 element data.
-	declaration part is in "header.h".*/
+	declaration part is in "fileopen.h".*/
 
 #include "stdafx.h"
 #include "header.h"
 
 using namespace std;
 
-file::file(string filename)
+a10::a10(string filename)
 {
 	cout << "open file=" << filename << "\n";
 	fin.open(filename, ios_base::in | ios_base::binary);
@@ -16,48 +16,30 @@ file::file(string filename)
 	}
 }
 
-file::~file()
+a10::~a10()
 {
 	cout << "delete object.\n";
 }
 
-void file::open(string filename)
-{
-	fin.open(filename, ios_base::in | ios_base::binary);
-	if (!fin){
-		cout << "couldn't load file.\n";
-	}
-}
-
-void file::start()
+void a10::start()
 {
 	fin.clear();
 	fin.seekg(0, ios_base::beg);
 }
 
-void file::warp(int pos)
+void a10::warp(int pos)
 {
 	fin.seekg(pos, ios_base::beg);
 }
 
-void file::go(int pos)
+void a10::go(int pos)
 {
 	fin.seekg(pos, ios_base::cur);
 }
 
-
-/*a10*/
-a10::a10(string filename) : file(filename)
-{
-}
-
-a10::~a10()
-{
-}
-
 void a10::loadheader()
 {
-	file::start();
+	a10::start();
 	fin.seekg(32, ios_base::beg);
 
 	fin.read((char*)&len_record, sizeof(unsigned short));

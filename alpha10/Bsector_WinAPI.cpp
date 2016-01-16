@@ -37,11 +37,11 @@ void BSector2(const vector<vector<float>>& env, float dangle, float fs)
 
 	int n_angl, ic;
 	float b_angl;
-	float addmin = -60.0;
+	float addmin = -120;
 	for (int i = 0; i < line; ++i){
 		n_angl = 2 * (sample + ini_dn) * sin(b_angld) / 2;
 		for (int j = 0; j < sample; j += nstp){
-			ic = static_cast<int>(256*(10.*log10(env[i][j] / max) + gain) / gain);
+			ic = static_cast<int>(256*(20.*log10(env[i][j] / max) + gain) / gain);
 			if (ic < 0) ic = 0;
 			if (ic > 255) ic = 255;
 			gscolor = gscol256(ic, ic, ic);
