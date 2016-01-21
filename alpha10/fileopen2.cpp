@@ -169,11 +169,11 @@ void a10::loadRF0(int frame)
 	if (RF0.empty())
 		RF0 = vector<vector<vector<short>>>(line, vector<vector<short>>(ch, vector<short>(sample - 1, 0)));
 
-	for (int i = 0; i < frame - 1;++i)
+	for (int i = 0; i < frame; ++i)
 		fin.seekg((line * ch * (sample + 3))* sizeof(short), ios_base::cur);
 
 	short tmp;
-	cout << "loading RF(only one frame)...\n";
+	cout << "loading RF(frame " << frame << ")...\n";
 	for (int i = 0; i < line; ++i){
 		for (int j = 0; j < ch - 16; ++j){ // back of 80 elements
 			fin.seekg(8, ios_base::cur); //attribute 6byte channel number 2byte

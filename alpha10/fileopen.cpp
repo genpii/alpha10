@@ -49,6 +49,7 @@ void file::go(int pos)
 /*a10*/
 a10::a10(string filename) : file(filename)
 {
+	loadheader();
 }
 
 a10::~a10()
@@ -191,7 +192,7 @@ void a10::loadRF0(int frame)
 		fin.seekg((line * ch * (sample + 3))* sizeof(short), ios_base::cur);
 
 	short tmp;
-	cout << "loading RF(only one frame)...\n";
+	cout << "loading RF(frame: " << frame << ")...\n";
 	for (int i = 0; i < line; ++i){
 		for (int j = 0; j < ch - 16; ++j){ // back of 80 elements
 			fin.seekg(8, ios_base::cur); //attribute 6byte channel number 2byte

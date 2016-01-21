@@ -8,7 +8,8 @@ using namespace std;
 int physio();
 void Bsector(const vector<vector<float>>& env, float dangle);
 void cairo(const vector<vector<float>>& env, float dangle);
-void BSector2(const vector<vector<float>>& env, float dangle, float fs);
+void BSector2(const vector<vector<float>>& env, float dangle, float fs, int frm, float max);
+float BSector22(const vector<vector<float>>& env, float dangle, float fs, int frm);
 //void Bsector3(const vector<vector<float>>& env, float dangle);
 
 
@@ -85,19 +86,19 @@ class GN{
 	vector<vector<float>> jj;
 	vector<vector<float>> jjinv;
 	vector<float> beta;
-	vector<float> res;
+	vector<double> res;
 	int m, n;
 	Ipp32f *x, *y;
 
 	float tmp;
 
 public:
-	GN(const vector<float> &x_ini, const vector<float> &y_ini);
-	~GN();
+	GN(const vector<double> &x_ini, const vector<double> &y_ini);
+	//~GN();
 	void setj();
 	void trans();
 	void loadpoint();
 	void mul(const vector<vector<float>> &a, const vector<vector<float>> &b);
 	void mul(const vector<vector<float>> &a, const vector<float> &b);
-	void solve(const float &r_ini, const float &c_ini);
+	vector<double> solve(const double &r_ini, const double &c_ini);
 };
