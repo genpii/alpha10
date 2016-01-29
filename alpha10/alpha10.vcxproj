@@ -95,10 +95,9 @@
   <ItemGroup>
     <ClCompile Include="Bsector_WinAPI.cpp" />
     <ClCompile Include="Bsector_cairo.cpp" />
-    <ClCompile Include="fileopen2.cpp" />
+    <ClCompile Include="fileopen.cpp" />
     <ClCompile Include="GN.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="physio.cpp" />
     <ClCompile Include="DSP.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

@@ -3,7 +3,7 @@
 
 using namespace std;
 
-GN::GN(const vector<double> &x_ini, const vector<double> &y_ini)
+GN::GN(const vector<double>& x_ini, const vector<double>& y_ini)
 {
 	m = x_ini.size();
 	x = ippsMalloc_32f(m);

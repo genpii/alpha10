@@ -2,7 +2,7 @@
 
 using namespace std;
 
-void writev(vector<float> &v, string &str)
+void writev(vector<float>& v, string& str)
 {
 	ofstream fout(str, ios_base::out);
 	for (auto it = v.begin(); it != v.end(); ++it){
@@ -11,7 +11,7 @@ void writev(vector<float> &v, string &str)
 	fout.close();
 }
 
-void writev(vector<float> &v, float &sc, string &str)
+void writev(vector<float>& v, float& sc, string& str)
 {
 	ofstream fout(str, ios_base::out);
 	for (auto it = v.begin(); it != v.end(); ++it){
@@ -20,7 +20,7 @@ void writev(vector<float> &v, float &sc, string &str)
 	fout.close();
 }
 
-vector<float> NormCC(const vector<float> &x1, const vector<float> &x2, int lag, int offset)
+vector<float> NormCC(const vector<float>& x1, const vector<float>& x2, int lag, int offset)
 {
 	IppStatus status;
 	IppEnum NormA = (IppEnum)(ippAlgAuto | ippsNormA);
@@ -53,7 +53,7 @@ vector<float> NormCC(const vector<float> &x1, const vector<float> &x2, int lag, 
 	return dst;
 }
 
-vector<float> pwrspe(const vector<float> &v, const int &order)
+vector<float> pwrspe(const vector<float>& v, const int& order)
 {
 	int length = 1;
 	for (int i = 0; i < order; ++i)

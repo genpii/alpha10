@@ -58,7 +58,7 @@ a10::~a10()
 
 void a10::loadheader()
 {
-	file::start();
+	start();
 	fin.seekg(32, ios_base::beg);
 
 	fin.read((char*)&len_record, sizeof(unsigned short));
@@ -242,4 +242,83 @@ void a10::rmbias()
 				for (int l = 0; l < sample - 1; ++l)
 					RF[i][j][k][l] -= bias;
 			}
+}
+
+physio::physio(string filename) : file(filename)
+{
+	fn = filename;
+}
+
+physio::~physio()
+{
+}
+
+int physio::extract(int offset)
+{
+	vector<unsigned char> check;
+	char tmp;
+	while (!fin.eof()){
+		fin.read((char*)&tmp, sizeof(unsigned char));
+		check.push_back(tmp);
+	}
+	fin.close();
+
+	/*searching key*/
+	list<unsigned char> key = { 0xFF, 0x53, 0x21, 0x10, 0x4F, 0x42, 0x00, 0x00 };
+	vector<unsigned char>::iterator it = find_end(check.begin(), check.end(), key.begin(), key.end());
+	int dist = distance(check.begin(), it);
+	if (it == check.end()){
+		cout << "not found key\n";
+		return 1;
+	}
+	else{
+		cout << "key is at check[" << dist << "]\n";
+	}
+	int size = (check.size() - dist - 12 - 1) / 32;
+	vector<unsigned char>().swap(check);
+
+	/*extract physio data*/
+	open(fn);
+	fin.seekg(dist + 12, ios_base::beg);
+
+	short tmp2 = 0;
+
+	ECG.reserve(size);
+	PCG_min.reserve(size);
+	PCG_max.reserve(size);
+	for (int i = 0; i < size; ++i){
+		fin.seekg(8, ios_base::cur);
+		fin.read((char*)&tmp2, sizeof(short));
+		ECG.push_back(tmp2 & 0x03FF);
+		fin.read((char*)&tmp2, sizeof(short));
+		PCG_min.push_back(tmp2 & 0x03FF);
+		fin.read((char*)&tmp2, sizeof(short));
+		PCG_max.push_back(tmp2 & 0x03FF);
+		fin.seekg(18, ios_base::cur);
+	}
+
+	ECG.erase(ECG.begin(), ECG.begin() + offset);
+	PCG_min.erase(PCG_min.begin(), PCG_min.begin() + offset);
+	PCG_max.erase(PCG_max.begin(), PCG_max.begin() + offset);
+
+	return 0;
+}
+
+void physio::write()
+{
+	ofstream pecg("./ECG.dat", ios_base::out);
+	ofstream ppcgmin("./PCG_min.dat", ios_base::out);
+	ofstream ppcgmax("./PCG_max.dat", ios_base::out);
+
+	float ratio = 1000 / 998;
+	for (int i = 0; i < ECG.size(); ++i){
+		pecg << i * ratio << " " << ECG[i] << "\n";
+		ppcgmin << i * ratio << " " << PCG_min[i] << "\n";
+		ppcgmax << i * ratio << " " << PCG_max[i] << "\n";
+	}
+	pecg.close();
+	ppcgmin.close();
+	ppcgmax.close();
+
+	cout << "wrote physio data!\n";
 }

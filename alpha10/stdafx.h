@@ -24,7 +24,7 @@
 #include <ippm.h> //IPP s—ñ
 #include <list> //list
 #include <algorithm> //ƒAƒ‹ƒSƒŠƒYƒ€
-#include <direct.h> //ŠK‘w‘–¸
+#include <direct.h> //ŠK‘w‘–¸ mkdir—p
 #include <array> //C++ STL”z—ñ
 #include <sstream> //stringstream
 
