@@ -27,4 +27,5 @@
 #include <direct.h> //ŠK‘w‘–¸ mkdir—p
 #include <array> //C++ STL”z—ñ
 #include <sstream> //stringstream
-
+#include <map>
+#include <mkl.h> //IntelMKL

@@ -1,5 +1,5 @@
 // fileopen.cpp
-/*This program defines the class for opening and storing a-10 element data.
+/*This program defines the class for opening and storing alpha-10 element data.
 	declaration part is in "header.h".*/
 
 #include "stdafx.h"
@@ -14,6 +14,11 @@ file::file(string filename)
 	if (!fin){
 		cout << "couldn't load file.\n";
 	}
+}
+
+file::file()
+{
+
 }
 
 file::~file()
@@ -52,6 +57,11 @@ a10::a10(string filename) : file(filename)
 	loadheader();
 }
 
+a10::a10()
+{
+
+}
+
 a10::~a10()
 {
 }
@@ -65,6 +75,7 @@ void a10::loadheader()
 	fin.read((char*)&frame, sizeof(unsigned short));
 	frame = frame - 1;
 	fin.read((char*)&line, sizeof(unsigned short));
+
 	fin.read((char*)&sample, sizeof(unsigned short));
 	fin.read((char*)&ch, sizeof(unsigned short));
 
@@ -188,7 +199,7 @@ void a10::loadRF0(int frame)
 	if (RF0.empty())
 		RF0 = vector<vector<vector<short>>>(line, vector<vector<short>>(ch, vector<short>(sample - 1, 0)));
 
-	for (int i = 0; i < frame - 1;++i)
+	for (int i = 0; i < frame; ++i)
 		fin.seekg((line * ch * (sample + 3))* sizeof(short), ios_base::cur);
 
 	short tmp;
@@ -243,6 +254,185 @@ void a10::rmbias()
 					RF[i][j][k][l] -= bias;
 			}
 }
+
+int a10::plotRF0(string dir)
+{
+	if (RF0.empty()){
+		cout << "RF0 is empty.\n";
+		return 1;
+	}
+
+	ostringstream ost;
+	ofstream fout;
+	int line = RF0.size();
+	int ch = RF0[0].size();
+	int sample = RF0[0][0].size();
+
+	for (int i = 0; i < line; ++i){
+		ost << "./" << dir << "/" << i << ".dat";
+		fout.open(ost.str(), ios_base::out);
+		ost.clear();
+		ost.str("");
+		for (int j = 0; j < ch; ++j){
+			for (int k = 0; k < sample; ++k){
+				fout << k << " " << RF0[i][j][k] - 4096 * j << "\n";
+			}
+			fout << "\n";
+		}
+		fout.close();
+	}
+
+	return 0;
+}
+
+vector<vector<double>> a10::calcenv(int frame, float max_angle, float frq_s)
+{
+	if (RF0.empty()){
+		cout << "RF0 is empty.\n";
+		vector<vector<double>> dummy;
+		return dummy;
+	}
+
+	int line = RF0.size();
+	int ch = RF0[0].size();
+	int sample = RF0[0][0].size() + 1; //fit power of two for FFT
+
+	//spec and buffer setting for FFT
+	Ipp8u *specbuff, *initbuff, *workbuff;
+	Ipp8u *specbufi, *initbufi, *workbufi;
+	int size_specf, size_initf, size_workf;
+	int size_speci, size_initi, size_worki;
+	IppsFFTSpec_C_64fc *specf = 0;
+	IppsFFTSpec_C_64fc *speci = 0;
+	Ipp64fc *ipsrc = ippsMalloc_64fc((int)sample);
+	Ipp64fc *ipdst = ippsMalloc_64fc((int)sample);
+	Ipp64fc *ipsrc2 = ippsMalloc_64fc((int)(4 * sample));
+	Ipp64fc *ipdst2 = ippsMalloc_64fc((int)(4 * sample));
+	const int fftorder = (int)(log((double)sample) / log(2.0));
+	const int ifftorder = (int)(log((double)(4 * sample)) / log(2.0));
+	ippsFFTGetSize_C_64fc(fftorder, IPP_FFT_NODIV_BY_ANY, ippAlgHintNone, &size_specf, &size_initf, &size_workf);
+	ippsFFTGetSize_C_64fc(ifftorder, IPP_FFT_NODIV_BY_ANY, ippAlgHintNone, &size_speci, &size_initi, &size_worki);
+	specbuff = ippsMalloc_8u(size_specf);
+	specbufi = ippsMalloc_8u(size_speci);
+	initbuff = ippsMalloc_8u(size_initf);
+	initbufi = ippsMalloc_8u(size_initi);
+	workbuff = ippsMalloc_8u(size_workf);
+	workbufi = ippsMalloc_8u(size_worki);
+	ippsFFTInit_C_64fc(&specf, fftorder, IPP_FFT_NODIV_BY_ANY, ippAlgHintNone, specbuff, initbuff);
+	ippsFFTInit_C_64fc(&speci, ifftorder, IPP_FFT_NODIV_BY_ANY, ippAlgHintNone, specbufi, initbufi);
+
+	//calculate delay
+	const double c0 = 1540.0;
+	int point, add;
+	double eledep; //in-bound(um)
+	double decimal; //decimal part in sampling point of round trip distance
+	vector<double> xi(ch, 0); // x-coordinate of each element
+	for (int i = 0; i < ch; ++i)
+		xi[i] = 0.2 * (47.5 - i) * 1e+3; //um
+		//xi[i] = 0.2 * (i - 47.5) * 1e+3;
+	vector<double> theta(line, 0);
+	for (int i = 0; i < line; ++i) //beam angle
+		theta[i] = max_angle * ((line - 1) / 2 - i) * (M_PI / 180.0);
+	vector<double> cendep(sample, 0);
+	for (int i = 0; i < sample; ++i)
+		cendep[i] = i * (c0 / (2 * frq_s)); //out-bound(um)
+
+	//vector<vector<vector<double>>> elere(line, vector<vector<double>>(ch, vector<double>(4 * sample, 0)));
+	//vector<vector<vector<double>>> eleim(line, vector<vector<double>>(ch, vector<double>(4 * sample, 0)));
+
+	vector<vector<double>> RFre(line, vector<double>(sample, 0));
+	vector<vector<double>> RFim(line, vector<double>(sample, 0));
+
+	vector<int> addcnt(sample, 0);
+
+	for (int j = 0; j < line; ++j){
+		for (int k = 0; k < ch; ++k){
+			ippsZero_64fc(ipsrc, sample);
+			ippsZero_64fc(ipdst, sample);
+			ippsZero_64fc(ipsrc2, 4 * sample);
+			ippsZero_64fc(ipdst2, 4 * sample);
+			//set
+			for (int l = 0; l < sample - 1; ++l){
+				ipsrc[l].re = RF0[j][k][l];
+				ipsrc[l].im = 0.0;
+			}
+
+			//do FFT
+			ippsFFTFwd_CToC_64fc(ipsrc, ipdst, specf, workbuff);
+			ippsZero_8u(workbuff, size_workf);
+			//double positive part and delete negative part
+			for (int l = 0; l < sample / 2; ++l){
+				ipdst[l].re = ipdst[l].re * 2 / sample;
+				ipdst[l].im = ipdst[l].im * 2 / sample;
+				ipdst[l + sample / 2].re = 0.0;
+				ipdst[l + sample / 2].im = 0.0;
+			}
+			for (int l = 0; l < 34; ++l){
+				ipdst[l].re = 0.0;
+				ipdst[l].im = 0.0;
+			}
+
+			for (int l = 0; l < sample; ++l){
+				ipsrc2[l].re = ipdst[l].re;
+				ipsrc2[l].im = ipdst[l].im;
+			}
+
+
+			//do IFFT
+			ippsFFTInv_CToC_64fc(ipsrc2, ipdst2, speci, workbufi);
+			ippsZero_8u(workbufi, size_worki);
+
+			//save
+			for (int l = 0; l < 4 * sample; ++l){
+				ipdst2[l].re *= 4 * sample;
+				ipdst2[l].im *= 4 * sample;
+			}
+			//ippsZero_64fc(ipdst2, 4 * sample);
+
+			for (int l = 0; l < sample; ++l){
+				eledep = sqrt(pow(xi[k], 2) + pow(cendep[l], 2) - 2 * xi[k] * cendep[l] * sin(theta[j]));
+				point = static_cast<int>(((cendep[l] + eledep) / 2) / (c0 / (8 * frq_s)));
+				decimal = ((cendep[l] + eledep) / 2) / (c0 / (8 * frq_s)) - point;
+				if (point < 4 * sample - 1){
+					RFre[j][l] += ipdst2[point].re + (ipdst2[point + 1].re - ipdst2[point].re) * decimal;
+					RFim[j][l] += ipdst2[point].im + (ipdst2[point + 1].im - ipdst2[point].im) * decimal;
+					++addcnt[l];
+				}
+			}
+		}
+		for (int k = 0; k < sample; ++k){
+			if (addcnt[k] != 0){
+				RFre[j][k] /= addcnt[k];
+				RFim[j][k] /= addcnt[k];
+			}
+			else{
+				RFre[j][k] = 0.0;
+				RFim[j][k] = 0.0;
+			}
+			addcnt[k] = 0.0;
+		}
+	}
+
+
+
+	//vector<vector<vector<double>>>().swap(elere);
+	//vector<vector<vector<double>>>().swap(eleim);
+
+	vector<vector<double>> env(line, vector<double>(sample, 0));
+
+	for (int j = 0; j < line; ++j)
+		for (int k = 0; k < sample; ++k)
+			env[j][k] = sqrt(pow(RFre[j][k], 2) + pow(RFim[j][k], 2));
+
+	vector<vector<double>>().swap(RFre);
+	vector<vector<double>>().swap(RFim);
+
+	return env;
+}
+
+
+
+
 
 physio::physio(string filename) : file(filename)
 {
