@@ -136,15 +136,24 @@ public:
 	vector<vector<vector<vector<double>>>> path;
 	vector<vector<double>> path_near;
 	
+	//simulate
+	vector<vector<double>> sp_g;
+	double sp_n;
 
 	//functions
 	est_ss(int w, int h, int beam);
 	void set_parameter(double dangle, double frq_s);
 	void loadRF(const vector<vector<vector<short>>>& RF0);
+
+	void sim_RF();
+	void sim_delay_setspeed();
+	void sim_delay_calcdelay();
 	int calc_delay(double depth); // depth(mm);
 	int calc_path();
 
 	int del_brokenelement();
+
+	int write_mat();
 
 	void SVD(); //singular value decomposition of path matrix
 	

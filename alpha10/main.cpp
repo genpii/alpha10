@@ -71,7 +71,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	
 
 	//raw.loadRF();
-	raw.loadRF0(2);
+	//raw.loadRF0(2);
 	//string dirstr = "0207";
 	//raw.plotRF0(dirstr);
 
@@ -81,10 +81,15 @@ int _tmain(int argc, _TCHAR* argv[])
 	est_ss est(5, 3, 3);
 	
 	est.set_parameter(max_angle, frq_s);
-	est.loadRF(raw.RF0);
-	est.calc_delay(40.0);
+	//est.loadRF(raw.RF0);
+	//est.sim_RFset();
+	
+	//est.calc_delay(40.0);
+	est.sim_delay_setspeed();
 	est.calc_path();
-	est.del_brokenelement();
+	est.sim_delay_calcdelay();
+	//est.del_brokenelement();
+	est.write_mat();
 
 	est.SVD();
 
