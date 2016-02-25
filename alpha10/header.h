@@ -118,7 +118,7 @@ public:
 
 	const double c0 = 1540.0;
 	double angle;
-	double fs;
+	double fs, f0;
 
 	vector<int> b_ele = { 8, 9, 10, 11, 12, 13, 14, 19, 42, 47, 56, 79, 80 }; // broken element
 
@@ -142,13 +142,14 @@ public:
 
 	//functions
 	est_ss(int w, int h, int beam);
-	void set_parameter(double dangle, double frq_s);
+	void set_parameter(double dangle, double frq_s, double frq_t);
 	void loadRF(const vector<vector<vector<short>>>& RF0);
 
 	void sim_RF();
 	void sim_delay_setspeed();
 	void sim_delay_calcdelay();
 	int calc_delay(double depth); // depth(mm);
+	int calc_delay_ph(double depth); // depth(mm);
 	int calc_path();
 
 	int del_brokenelement();

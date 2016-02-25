@@ -71,27 +71,27 @@ int _tmain(int argc, _TCHAR* argv[])
 	
 
 	//raw.loadRF();
-	//raw.loadRF0(2);
+	
 	//string dirstr = "0207";
 	//raw.plotRF0(dirstr);
-
+	raw.loadRF0(2);
 	//vector<vector<double>> env = raw.calcenv(1, max_angle, frq_s);
 	//BSector22(raw.calcenv(1, max_angle, frq_s), max_angle, frq_s, 2);
 
-	est_ss est(5, 3, 3);
+	est_ss est(5, 3, 3); // (grid_w, grid_h, grid/beam)
 	
-	est.set_parameter(max_angle, frq_s);
-	//est.loadRF(raw.RF0);
+	est.set_parameter(max_angle, frq_s, frq_t);
+	est.loadRF(raw.RF0);
 	//est.sim_RFset();
 	
-	//est.calc_delay(40.0);
-	est.sim_delay_setspeed();
+	est.calc_delay(40.0); //40.0mm
+	//est.sim_delay_setspeed();
 	est.calc_path();
-	est.sim_delay_calcdelay();
+	//est.sim_delay_calcdelay();
 	//est.del_brokenelement();
 	est.write_mat();
 
-	est.SVD();
+	//est.SVD();
 
 	
 	//vector<vector<short>> rf(ch, vector<short>(sample, 0));

@@ -10,10 +10,11 @@ est_ss::est_ss(int w, int h, int beam)
 	bpg = beam;
 }
 
-void est_ss::set_parameter(double dangle, double frq_s)
+void est_ss::set_parameter(double dangle, double frq_s, double frq_t)
 {
 	angle = dangle;
 	fs = frq_s;
+	f0 = frq_t;
 
 	line = grid_w * bpg;
 	ch = 96;
@@ -214,6 +215,115 @@ int est_ss::calc_delay(double depth)
 
 	return 0;
 }
+
+int est_ss::calc_delay_ph(double depth)
+{
+	//reference : 95-th element
+	double dep = depth * 1e+3; //mm -> um
+	
+	delay = vector<vector<double>>(line, vector<double>(ch, 0));
+	scatdep = vector<double>(line, 0);
+
+	int point_ref;
+	double time_ref;
+	double dep_ref;
+
+
+
+	ofstream fout("corrcheck.dat", ios_base::out);
+
+	
+
+	Ipp64f std1, std2;
+	IppStatus status;
+	IppEnum Norm = (IppEnum)(ippAlgAuto | ippsNormNone);
+	Ipp8u *pbuffer;
+	int bufsize = 0;
+	int lowlag;
+	const int src1Len = 128;
+	const int src2Len = sample;
+	const int dstLen = 128;
+	Ipp32f *pSrc1 = ippsMalloc_32f(src1Len);
+	Ipp32fc *pSrc1c = ippsMalloc_32fc(src1Len);
+	Ipp32f *pSrc2 = ippsMalloc_32f(src2Len);
+	Ipp32fc *pSrc2c = ippsMalloc_32fc(src2Len);
+	Ipp32fc *pDst = ippsMalloc_32fc(dstLen);
+	Ipp32f *pDstamp = ippsMalloc_32f(dstLen);
+	Ipp32f maxval;
+	int maxidx;
+	IppsHilbertSpec_32f32fc *hspec;
+	double phase;
+
+	for (int i = 0; i < line; ++i){
+		//point of depth at 95-th element
+		dep_ref = sqrt(pow(dep, 2) + pow(elex[ch - 1], 2) - 2 * dep * elex[ch - 1] * sin(theta[i]));
+		point_ref = static_cast<int>(fs * (dep + dep_ref) / c0);
+
+		vector<short>::iterator it = RF[i][ch - 1].begin();
+		it += point_ref;
+		auto it2 = max_element(it, RF[i][ch - 1].end());
+		point_ref = distance(RF[i][ch - 1].begin(), it2);
+
+		scatdep[i] = (pow(c0 * point_ref / fs, 2) - pow(elex[ch - 1], 2)) / 2 / (c0 * point_ref / fs - elex[ch - 1] * sin(theta[i])); //um
+
+		if (point_ref + src1Len / 2  > sample){
+			cout << "border error!\n";
+			return 1;
+		}
+		time_ref = point_ref / fs;
+
+		ippsZero_32f(pSrc1, src1Len);
+		for (int j = 0; j < src1Len; ++j){
+			pSrc1[j] = RF[i][ch - 1][point_ref + j - src1Len / 2];
+		}
+		ippsHilbertInitAlloc_32f32fc(&hspec, src1Len, ippAlgHintFast);
+		ippsHilbert_32f32fc(pSrc1, pSrc1c, hspec);
+		ippsNorm_L2_32fc64f(pSrc1c, src1Len, &std1);
+
+		lowlag = point_ref - src1Len;
+		status = ippsCrossCorrNormGetBufferSize(src1Len, src2Len, dstLen, lowlag, ipp32fc, Norm, &bufsize);
+		pbuffer = ippsMalloc_8u(bufsize);
+
+
+		for (int j = 0; j < ch; ++j){
+			ippsZero_32f(pSrc2, sample);
+			for (int k = 0; k < sample - 1; ++k){
+				pSrc2[k] = RF[i][j][k];
+			}
+			ippsHilbertInitAlloc_32f32fc(&hspec, src2Len, ippAlgHintFast);
+			ippsHilbert_32f32fc(pSrc2, pSrc2c, hspec);
+			status = ippsCrossCorrNorm_32fc(pSrc1c, src1Len, pSrc2c, src2Len, pDst, dstLen, lowlag, Norm, pbuffer);
+
+			for (int k = 0; k < dstLen; ++k){
+				ippsNorm_L2_32fc64f(pSrc2c + lowlag, src1Len, &std2);
+				pDst[k].re /= (Ipp32f)(std1 * std2);
+				pDst[k].im /= (Ipp32f)(std1 * std2);
+			}
+			ippsMagnitude_32fc(pDst, pDstamp, dstLen);
+			status = ippsMaxIndx_32f(pDstamp, dstLen, &maxval, &maxidx);
+
+			delay[i][j] = time_ref + (maxidx - dstLen / 2) / fs;
+			if (i == line / 2){
+				fout << j << " " << delay[i][j] << "\n";
+			}
+		}
+
+
+		ippsFree(pbuffer);
+	}
+
+	fout.close();
+
+	auto minmax = minmax_element(scatdep.begin(), scatdep.end());
+	cout << "min depth :" << *minmax.first << "\n";
+	cout << "max depth :" << *minmax.second << "\n";
+
+	return 0;
+}
+
+
+
+
 
 int est_ss::calc_path()
 {
