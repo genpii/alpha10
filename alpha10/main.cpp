@@ -18,14 +18,79 @@
 #include "header.h"
 
 using namespace std;
+using namespace Eigen;
+
+
+struct misra1a_functor
+{
+	misra1a_functor(int inputs, int values, double *x, double *y)
+		: inputs_(inputs), values_(values), x(x), y(y) {}
+
+	double *x;
+	double *y;
+
+	double p = 0.2e3;
+	double l = 9.5e3;
+	double sn = 0.15646446504;
+
+	// 目的関数
+	int operator()(const VectorXd& b, VectorXd& fvec) const
+	{
+		for (int i = 0; i < values_; ++i) {
+			fvec[i] = (b[0] + sqrt(pow(p * x[i], 2) + 2.0 * (b[0] * sn - l)*p*x[i] + pow(b[0], 2) + pow(l, 2) - 2.0 * b[0] * l*sn)) / b[1] - y[i];
+		}
+		return 0;
+	}
+	// 微分,ヤコビアン
+	int df(const VectorXd& b, MatrixXd& fjac)
+	{
+		for (int i = 0; i < values_; ++i) {
+			fjac(i, 0) = 1 / b[1] + (b[0] + sn*(p*x[i] - l)) / sqrt(pow(p * x[i], 2) + 2.0 * (b[0] * sn - l)*p*x[i] + pow(b[0], 2) + pow(l, 2) - 2.0 * b[0] * l*sn);
+			fjac(i, 1) = -(b[0] + sqrt(pow(p * x[i], 2) + 2.0 * (b[0] * sn - l)*p*x[i] + pow(b[0], 2) + pow(l, 2) - 2.0 * b[0] * l*sn)) / b[1] / b[1];
+		}
+		return 0;
+	}
+
+	const int inputs_;
+	const int values_;
+	int inputs() const { return inputs_; }
+	int values() const { return values_; }
+};
 
 int _tmain(int argc, _TCHAR* argv[])
 {
 	//cin.tie(0);
 	//ios::sync_with_stdio(false);
+	//ifstream plot("elemplus.dat", ios_base::in);
 
-	string dirname = "D:/RFdata/study/20160205/1/";
-	//physio phy(dirname + "1");
+	//double xa[75], ya[75];
+	//for (int i = 0; i < 75; ++i){
+	//	plot >> xa[i] >> ya[i];
+	//}
+
+	//const int n = 2; // beta1とbeta2で二つ
+	//int info;
+
+	//VectorXd p(n); // beta1とbeta2の初期値(適当)
+	//p << 45.0e3, 1550.0;
+
+	//// 入力データ
+	////double xa[] = { 77.6E0, 114.9E0, 141.1E0, 190.8E0, 239.9E0, 289.0E0, 332.8E0, 378.4E0, 434.8E0, 477.3E0, 536.8E0, 593.1E0, 689.1E0, 760.0E0 };
+	////double ya[] = { 10.07E0, 14.73E0, 17.94E0, 23.93E0, 29.61E0, 35.18E0, 40.02E0, 44.82E0, 50.76E0, 55.05E0, 61.01E0, 66.40E0, 75.47E0, 81.78E0 };
+
+	//std::vector<double> x(&xa[0], &xa[75]); // vectorの初期化は不便
+	//std::vector<double> y(&ya[0], &ya[75]);
+
+	//misra1a_functor functor(n, x.size(), &x[0], &y[0]);
+	//LevenbergMarquardt<misra1a_functor> lm(functor);
+	//info = lm.minimize(p);
+
+	//std::cout << p[0] << " " << p[1] << std::endl;
+
+	vector<int> b_ele;
+	b_ele = { 8, 9, 10, 11, 12, 13, 14, 19, 42, 47, 56, 79, 80 };
+	string dirname = "D:/RFdata/study/20160613/";
+	physio phy(dirname + "2");
 
 	/* open data */
 	cout << "Load started.\n";
@@ -38,7 +103,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	raw.frq_s = 30.0;
 	raw.printheader();
 
-	raw.frame = 2;
+	raw.frame = 15;
 	unsigned short frame = raw.frame;
 	unsigned short line = raw.line;
 	unsigned short sample = raw.sample;
@@ -50,8 +115,8 @@ int _tmain(int argc, _TCHAR* argv[])
 	float FR = raw.FR;
 
 	int physio_offset = 1000 / FR;
-	//phy.extract(physio_offset);
-	//phy.write();
+	phy.extract(physio_offset);
+	phy.write();
 	
 	/* load RF data */
 	// RF[frame][line][ch][sample]
@@ -70,122 +135,140 @@ int _tmain(int argc, _TCHAR* argv[])
 	//gn.solve(45.5e3, 1540.0);
 	
 
-	//raw.loadRF();
+	raw.loadRF0(1);
 	
-	//string dirstr = "0207";
-	//raw.plotRF0(dirstr);
-	raw.loadRF0(2);
+	string dirstr = "0613";
+	raw.plotRF0(dirstr);
+	//raw.loadRF0(2);
 	//vector<vector<double>> env = raw.calcenv(1, max_angle, frq_s);
 	//BSector22(raw.calcenv(1, max_angle, frq_s), max_angle, frq_s, 2);
 
-	est_ss est(5, 3, 3); // (grid_w, grid_h, grid/beam)
+	//est_ss est(5, 3, 3); // (grid_w, grid_h, grid/beam)
 	
-	est.set_parameter(max_angle, frq_s, frq_t);
-	est.loadRF(raw.RF0);
+	//est.set_parameter(max_angle, frq_s, frq_t);
+	//est.loadRF(raw.RF0);
 	//est.sim_RFset();
 	
-	est.calc_delay(40.0); //40.0mm
+	//est.calc_delay(40.0); //40.0mm
 	//est.sim_delay_setspeed();
-	est.calc_path();
+	//est.calc_path();
 	//est.sim_delay_calcdelay();
 	//est.del_brokenelement();
-	est.write_mat();
+	//est.write_mat();
 
 	//est.SVD();
 
-	
-	//vector<vector<short>> rf(ch, vector<short>(sample, 0));
+	bool checkbr;
+	int avframe = 12;
+	int avline = 11;
+	vector<vector<short>> rf(ch, vector<short>(sample, 0));
 	//int sel_beamnum = 81;
 	//rf = raw.RF0[sel_beamnum];
 	//raw.freeRF0();
 	//
-	//Ipp32f *hilx = ippsMalloc_32f(sample);
-	//Ipp32fc *hily = ippsMalloc_32fc(sample);
-	//IppsHilbertSpec_32f32fc *hilspec;
-	//IppStatus hilst;
-	//hilst = ippsHilbertInitAlloc_32f32fc(&hilspec, sample, ippAlgHintFast);
-	//vector<vector<float>> anare(ch, vector<float>(sample, 0));
-	//vector<vector<float>> anaim(ch, vector<float>(sample, 0));
-	//for (int i = 0; i < ch; ++i){
-	//	ippsZero_32f(hilx, sample);
-	//	ippsZero_32fc(hily, sample);
-	//	for (int j = 0; j < sample - 1; ++j){
-	//		hilx[j] = rf[i][j];
-	//	}
-	//	hilst = ippsHilbert_32f32fc(hilx, hily, hilspec);
-	//	for (int j = 0; j < sample; ++j){
-	//		anare[i][j] = hily[j].re;
-	//		anaim[i][j] = hily[j].im;
-	//	}
-	//}
-	//vector<vector<short>>().swap(rf);
-	//ippsHilbertFree_32f32fc(hilspec);
-	//ippsFree(hilx);
-	//ippsFree(hily);
+	for (int i = 0; i < ch; ++i){
+		for (int j = 0; j < sample - 1; ++j){
+			rf[i][j] = raw.RF[avframe + 1][avline][i][j] - raw.RF[avframe][avline][i][j];
+		}
+	}
 
-	//
-	//Ipp64f std1, std2;
-	//Ipp32fc mean1, mean2;
-	//IppStatus corrst;
-	//IppEnum NormA = (IppEnum)(ippAlgAuto | ippsNormNone);
-	//int bufsize = 0;
-	//int lowlag = 1500;
-	//Ipp8u *pbuffer;
-	//const int src1Len = 256;
-	//const int src2Len = sample;
-	//const int dstLen = 128;
-	//Ipp32fc *pSrc1 = ippsMalloc_32fc(src1Len);
-	//Ipp32fc *pSrc2 = ippsMalloc_32fc(src2Len);
-	//Ipp32fc *pDst = ippsMalloc_32fc(dstLen);
-	//Ipp32fc *ptmp = ippsMalloc_32fc(src1Len);
-	//Ipp32f *ptmp2 = ippsMalloc_32f(src2Len);
-	//Ipp32f *ptmp3 = ippsMalloc_32f(dstLen);
-	//corrst = ippsCrossCorrNormGetBufferSize(src1Len, src2Len, dstLen, lowlag, ipp32fc, NormA, &bufsize);
-	//pbuffer = ippsMalloc_8u(bufsize);
-	//vector<float> norm(dstLen, 0);
-	//vector<vector<float>> corrre(ch, vector<float>(dstLen, 0));
-	//vector<vector<float>> corrim(ch, vector<float>(dstLen, 0));
-	//vector<vector<float>> corramp(ch, vector<float>(dstLen, 0));
-	//float normtmp;
+	Ipp32f *hilx = ippsMalloc_32f(sample);
+	Ipp32fc *hily = ippsMalloc_32fc(sample);
+	IppsHilbertSpec_32f32fc *hilspec;
+	IppStatus hilst;
+	hilst = ippsHilbertInitAlloc_32f32fc(&hilspec, sample, ippAlgHintFast);
+	vector<vector<float>> anare(ch, vector<float>(sample, 0));
+	vector<vector<float>> anaim(ch, vector<float>(sample, 0));
+	for (int i = 0; i < ch; ++i){
+		ippsZero_32f(hilx, sample);
+		ippsZero_32fc(hily, sample);
+		for (int j = 0; j < sample - 1; ++j){
+			hilx[j] = rf[i][j];
+		}
+		hilst = ippsHilbert_32f32fc(hilx, hily, hilspec);
+		for (int j = 0; j < sample; ++j){
+			anare[i][j] = hily[j].re;
+			anaim[i][j] = hily[j].im;
+		}
+	}
+	vector<vector<short>>().swap(rf);
+	ippsHilbertFree_32f32fc(hilspec);
+	ippsFree(hilx);
+	ippsFree(hily);
 
-	//for (int i = 0; i < src1Len; ++i){
-	//	pSrc1[i].re = anare[ch - 1][i + lowlag];
-	//	pSrc1[i].im = anaim[ch - 1][i + lowlag];
-	//}
-	////ippsMean_32fc(pSrc1, src1Len, &mean1, ippAlgHintFast);
-	////ippsSubCRev_32fc(pSrc1, mean1, ptmp, src1Len);
-	////ippsNorm_L2_32fc64f(ptmp, src1Len, &std1);
-	//ippsNorm_L2_32fc64f(pSrc1, src1Len, &std1);
+	
+	Ipp64f std1, std2;
+	Ipp32fc mean1, mean2;
+	IppStatus corrst;
+	IppEnum NormA = (IppEnum)(ippAlgAuto | ippsNormNone);
+	int bufsize = 0;
+	int lowlag = 1500;
+	Ipp8u *pbuffer;
+	/*const int src1Len = 256;
+	const int src2Len = sample;
+	const int dstLen = 128;*/
+	const int src1Len = 500;
+	const int src2Len = 500;
+	const int dstLen = src1Len * 2;
+	Ipp32fc *pSrc1 = ippsMalloc_32fc(src1Len);
+	Ipp32fc *pSrc2 = ippsMalloc_32fc(src2Len);
+	Ipp32fc *pDst = ippsMalloc_32fc(dstLen);
+	Ipp32fc *ptmp = ippsMalloc_32fc(src1Len);
+	Ipp32f *ptmp2 = ippsMalloc_32f(src2Len);
+	Ipp32f *ptmp3 = ippsMalloc_32f(dstLen);
+	corrst = ippsCrossCorrNormGetBufferSize(src1Len, src2Len, dstLen, lowlag, ipp32fc, NormA, &bufsize);
+	pbuffer = ippsMalloc_8u(bufsize);
+	vector<float> norm(dstLen, 0);
+	vector<vector<float>> corrre(ch, vector<float>(dstLen, 0));
+	vector<vector<float>> corrim(ch, vector<float>(dstLen, 0));
+	vector<vector<float>> corramp(ch, vector<float>(dstLen, 0));
+	float normtmp;
 
-	//for (int i = 0; i < ch; ++i){
-	//	ippsZero_32fc(pSrc2, sample);
-	//	ippsZero_32fc(pDst, dstLen);
-	//	ippsZero_32fc(ptmp, src1Len);
-	//	ippsZero_32f(ptmp2, src2Len);
-	//	for (int j = 0; j < sample; ++j){
-	//		pSrc2[j].re = anare[i][j];
-	//		pSrc2[j].im = anaim[i][j];
-	//		if (j < src1Len){
-	//			ptmp[j].re = anare[i][j];
-	//			ptmp[j].im = anaim[i][j];
-	//		}
-	//	}
-	//	corrst = ippsCrossCorrNorm_32fc(pSrc1, src1Len, pSrc2, src2Len, pDst, dstLen, lowlag, NormA, pbuffer);
-	//	ippsNorm_L2_32fc64f(ptmp, src1Len, &std2);
-	//	ippsMagnitude_32fc(pSrc2, ptmp2, src2Len);
-	//	ippsMagnitude_32fc(pDst, ptmp3, dstLen);
-	//	
-	//	for (int j = 0; j < dstLen; ++j){
-	//		ippsNorm_L2_32fc64f(pSrc2 + j, src1Len, &std2);
-	//		norm[j] = std2;
-	//	}
-	//	for (int j = 0; j < dstLen; ++j){
-	//		corrre[i][j] = pDst[j].re / std1 / norm[j];
-	//		corrim[i][j] = pDst[j].im / std1 / norm[j];
-	//		corramp[i][j] = ptmp3[j] / std1 / norm[j];
-	//	}
-	//}
+	for (int i = 0; i < src1Len; ++i){
+		pSrc1[i].re = anare[ch - 1][i + lowlag];
+		pSrc1[i].im = anaim[ch - 1][i + lowlag];
+	}
+	//ippsMean_32fc(pSrc1, src1Len, &mean1, ippAlgHintFast);
+	//ippsSubCRev_32fc(pSrc1, mean1, ptmp, src1Len);
+	//ippsNorm_L2_32fc64f(ptmp, src1Len, &std1);
+	ippsNorm_L2_32fc64f(pSrc1, src1Len, &std1);
 
+	for (int i = 0; i < ch; ++i){
+		ippsZero_32fc(pSrc2, sample);
+		ippsZero_32fc(pDst, dstLen);
+		ippsZero_32fc(ptmp, src1Len);
+		ippsZero_32f(ptmp2, src2Len);
+		for (int j = 0; j < sample; ++j){
+			pSrc2[j].re = anare[i][j];
+			pSrc2[j].im = anaim[i][j];
+			if (j < src1Len){
+				ptmp[j].re = anare[i][j];
+				ptmp[j].im = anaim[i][j];
+			}
+		}
+		corrst = ippsCrossCorrNorm_32fc(pSrc1, src1Len, pSrc2, src2Len, pDst, dstLen, lowlag, NormA, pbuffer);
+		ippsNorm_L2_32fc64f(ptmp, src1Len, &std2);
+		ippsMagnitude_32fc(pSrc2, ptmp2, src2Len);
+		ippsMagnitude_32fc(pDst, ptmp3, dstLen);
+		
+		for (int j = 0; j < dstLen; ++j){
+			ippsNorm_L2_32fc64f(pSrc2 + j, src1Len, &std2);
+			norm[j] = std2;
+		}
+		for (int j = 0; j < dstLen; ++j){
+			corrre[i][j] = pDst[j].re / std1 / norm[j];
+			corrim[i][j] = pDst[j].im / std1 / norm[j];
+			corramp[i][j] = ptmp3[j] / std1 / norm[j];
+		}
+	}
+	ofstream foutcorr("corr.dat", ios_base::out);
+	for (int i = 0; i < ch; ++i){
+		for (int j = 0; j < dstLen; ++j){
+			foutcorr << j << " " << corramp[i][j] - i * 2 << "\n";
+		}
+		foutcorr << "\n";
+	}
+	foutcorr.close();
 	//vector<int> mv(ch, 0);
 	//vector<float>::iterator itr;
 	//for (int i = 0; i < ch; ++i){
@@ -270,19 +353,20 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 	}*/
 	//cross correlation
-	//IppStatus status;
-	//int lowlag = -500;
-	//IppEnum NormA = (IppEnum)(ippAlgAuto | ippsNormA);
-	//int bufSize = 0;
-	//Ipp8u *pBuffer;
-	//const int srcLen = 500;
-	//const int dstLen = 2 * srcLen;
-	//Ipp32f *pSrc1 = ippsMalloc_32f(srcLen);
-	//Ipp32f *pSrc2 = ippsMalloc_32f(srcLen);
-	//Ipp32f *pDst = ippsMalloc_32f(dstLen);
-	//status = ippsCrossCorrNormGetBufferSize(srcLen, srcLen, dstLen, lowlag, ipp32f, NormA, &bufSize);
+	/*vector<int> b_ele = { 8, 9, 10, 11, 12, 13, 14, 19, 42, 47, 56, 79, 80 };
+	IppStatus status;
+	int lowlag = -500;
+	IppEnum NormA = (IppEnum)(ippAlgAuto | ippsNormA);
+	int bufSize = 0;
+	Ipp8u *pBuffer;
+	const int srcLen = 500;
+	const int dstLen = 2 * srcLen;
+	Ipp32f *pSrc1 = ippsMalloc_32f(srcLen);
+	Ipp32f *pSrc2 = ippsMalloc_32f(srcLen);
+	Ipp32f *pDst = ippsMalloc_32f(dstLen);
+	status = ippsCrossCorrNormGetBufferSize(srcLen, srcLen, dstLen, lowlag, ipp32f, NormA, &bufSize);
 
-	//pBuffer = ippsMalloc_8u(bufSize);
+	pBuffer = ippsMalloc_8u(bufSize);*/
 
 
 	//vector<vector<vector<short>>> rfp(line, vector<vector<short>>(ch, vector<short>(sample - 1, 0)));
@@ -509,9 +593,26 @@ int _tmain(int argc, _TCHAR* argv[])
 
 
 
+	
 
-	//int avframe = 12;
-	//int avline = 11;
+	//ofstream fou("elediftime.dat", ios_base::out);
+	//for (int i = 0; i < ch; ++i){
+	//	for (int j = 0; j < sample - 1; ++j){
+	//		fou << double(j) / double(frq_s) << " " << raw.RF[avframe + 1][avline][i][j] - raw.RF[avframe][avline][i][j] - i * 4096 << "\n";
+	//	}
+	//	fou << "\n";
+	//}
+	//fou.close();
+
+	//ofstream fou2("elediftime95.dat", ios_base::out);
+	//for (int i = 95; i < ch; ++i){
+	//	for (int j = 0; j < sample - 1; ++j){
+	//		fou2 << double(j) / double(frq_s) << " " << raw.RF[avframe + 1][avline][i][j] - raw.RF[avframe][avline][i][j] << "\n";
+	//	}
+	//	fou2 << "\n";
+	//}
+	//fou2.close();
+
 	//for (int i = 0; i < srcLen; ++i){
 	//	pSrc1[i] = raw.RF[avframe + 1][avline][ch - 1][1500 + i] - raw.RF[avframe][avline][ch - 1][1500 + i];
 	//	//pSrc1[i] = 1.0;
@@ -521,8 +622,12 @@ int _tmain(int argc, _TCHAR* argv[])
 	//ippsStdDev_32f(pSrc1, srcLen, &stdev1, ippAlgHintFast);
 
 	//vector<vector<float>> cc(ch, vector<float>(dstLen, 0));
+	//ofstream foutcorr("corr.dat", ios_base::out);
+
+
 
 	//for (int i = 0; i < ch; ++i){
+	//	checkbr = any_of(b_ele.begin(), b_ele.end(), [i](int x){return x == i; });
 	//	ippsZero_32f(pSrc2, srcLen);
 	//	ippsZero_32f(pDst, dstLen);
 	//	stdev2 = 0.0;
@@ -538,8 +643,16 @@ int _tmain(int argc, _TCHAR* argv[])
 	//		if (stdev1 * stdev2 >= 1e-9)
 	//			cc[i][j] = pDst[j] / (stdev1 * stdev2);
 	//		else cc[i][j] = 0.0;
+
+	//		//plot
+	//		if (!checkbr && i >= 14)
+	//			foutcorr << double(j - 500) / double(frq_s) << " " << cc[i][j] - i * 2 << "\n";
 	//	}
+	//	foutcorr << "\n";
 	//}
+	//foutcorr.close();
+
+
 	//ippsFree(pBuffer);
 
 	//vector<size_t> maxcc(ch, 0);
@@ -548,23 +661,28 @@ int _tmain(int argc, _TCHAR* argv[])
 	//	maxcc[i] = distance(cc[i].begin(), itrr);
 	//}
 	//
-	//ippsAbs_32f_I(pSrc1, srcLen);
+	////ippsAbs_32f_I(pSrc1, srcLen);
 	//Ipp32f pMax;
 	//int pIndx;
 	//ippsMaxIndx_32f(pSrc1, srcLen, &pMax, &pIndx);
 	//float maxoff = (pIndx + 1500) / frq_s;
 
 	//ofstream maxc("maxc.dat", ios_base::out); //delay
+
+	//
 	//for (int i = 0; i < ch; ++i){
-	//	if (i >= 15)
+	//	checkbr = any_of(b_ele.begin(), b_ele.end(), [i](int x){return x == i; });
+	//	if (!checkbr && i >= 14)
 	//		maxc << i << " " << (static_cast<int>(maxcc[i]) - 500) / frq_s << "\n";
 	//}
 	//maxc.close();
 
-	//ofstream fout3("elem.dat", ios_base::out); //delay (raw signal)
+	//ofstream fout3("elemplus.dat", ios_base::out); //delay (raw signal)
 	//for (int i = 0; i < ch; ++i){
-	//	if (i >= 15)
-	//		fout3 << i << " " << (static_cast<int>(maxcc[i]) - 500) / frq_s + maxoff << "\n";
+	//	checkbr = any_of(b_ele.begin(), b_ele.end(), [i](int x){return x == i; });
+	//	if (!checkbr && i >= 14)
+	//		fout3 << (static_cast<int>(maxcc[i]) - 500) / frq_s << " " << -2 * i + 1 << "\n";
+	//		//fout3 << i << " " << (static_cast<int>(maxcc[i]) - 500) / frq_s + maxoff << "\n";
 	//}
 	//fout3.close();
 
